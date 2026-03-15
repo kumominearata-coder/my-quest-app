@@ -96,7 +96,7 @@ export default function Home() {
   if (!isLoaded) return <div className="text-white text-center mt-20 font-bold">ロード中...</div>;
 
   return (
-    <main className="flex min-h-screen flex-col items-center bg-slate-950 text-white pb-32 overflow-hidden relative">
+    <main className="flex min-h-screen flex-col items-center bg-slate-950 text-white pb-40 overflow-hidden relative">
       <StatusBoard grit={grit} />
 
       {reviewTasks.length > 0 && (
@@ -124,17 +124,28 @@ export default function Home() {
         </AnimatePresence>
       </motion.div>
 
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-[100]">
-        <div className="relative flex items-center justify-between bg-slate-800/60 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-2xl h-16">
-          <div className="flex flex-1 justify-around items-center px-4">
-            {tabs.map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`relative py-1 px-3 transition-all ${activeTab === tab ? "text-amber-400 font-black scale-110" : "text-slate-400 font-bold"}`}>
-                <span className="text-[13px] tracking-wider">{tab === "habit" ? "習慣" : tab === "daily" ? "日課" : "To Do"}</span>
-                {activeTab === tab && <motion.div layoutId="activeTabIndicator" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-amber-400 rounded-full" />}
-              </button>
-            ))}
+{/* 修正：画面下部コンソールユニット（浮かせず下辺に完全固定） */}
+      <div className="fixed bottom-0 left-0 right-0 z-[100]">
+        {/* 背景にグラデーションを敷いて、リストの最後が透けて見えるようにするよ */}
+        <div className="bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-10 pb-5 px-4">
+          <div className="relative flex items-center justify-between bg-slate-900/80 backdrop-blur-xl border border-white/5 rounded-2xl p-1.5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] h-16 max-w-md mx-auto">
+            <div className="flex flex-1 justify-around items-center px-2">
+              {tabs.map((tab) => (
+                <button key={tab} onClick={() => setActiveTab(tab)} className={`relative py-1 px-3 transition-all ${activeTab === tab ? "text-amber-400 font-black scale-105" : "text-slate-500 font-bold"}`}>
+                  <span className="text-[12px] tracking-tighter">{tab === "habit" ? "習慣" : tab === "daily" ? "日課" : "To Do"}</span>
+                  {activeTab === tab && <motion.div layoutId="activeTabIndicator" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-amber-400 rounded-full" />}
+                </button>
+              ))}
+            </div>
+            
+            {/* ＋ボタン：少しだけ浮かせて「緊急起動ボタン」っぽさを維持 */}
+            <button 
+              onClick={() => { closeModal(); setIsModalOpen(true); }} 
+              className="flex-shrink-0 w-14 h-14 bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-[0_5px_20px_rgba(220,38,38,0.4)] flex items-center justify-center text-3xl font-light transition-all active:scale-90 border-b-4 border-red-800 relative z-[110]"
+            >
+              ＋
+            </button>
           </div>
-          <button onClick={() => { closeModal(); setIsModalOpen(true); }} className="flex-shrink-0 w-16 h-16 bg-red-600 hover:bg-red-500 text-white rounded-2xl shadow-[0_8px_25px_rgba(220,38,38,0.5)] flex items-center justify-center text-4xl font-light transition-all hover:scale-110 active:scale-95 border-b-4 border-red-800 translate-x-2 -translate-y-2 relative z-[110]">＋</button>
         </div>
       </div>
 
