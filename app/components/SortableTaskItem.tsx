@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { motion } from "framer-motion";
 
 export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGrit, getDiffLabel }: any) {
   const {
@@ -13,118 +14,143 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
     isDragging,
   } = useSortable({ id });
 
+  // --- 【5段階のシステム安定度：色の定義】 ---
+  const getStabilityConfig = (level: number) => {
+    switch (level) {
+      case 5: return { color: "text-cyan-400", border: "border-cyan-500/80", glow: "shadow-[0_0_50px_rgba(34,211,238,0.3)]" };
+      case 4: return { color: "text-emerald-400", border: "border-emerald-500/80", glow: "shadow-[0_0_50px_rgba(52,211,153,0.2)]" };
+      case 3: return { color: "text-yellow-400", border: "text-yellow-400/80", glow: "shadow-[0_0_50px_rgba(250,204,21,0.15)]" };
+      case 2: return { color: "text-orange-400", border: "border-orange-500/80", glow: "shadow-[0_0_50px_rgba(249,115,22,0.15)]" };
+      case 1: return { color: "text-rose-500", border: "border-rose-600/80", glow: "shadow-[0_0_50px_rgba(225,29,72,0.4)]" };
+      default: return { color: "text-zinc-500", border: "border-zinc-700", glow: "" };
+    }
+  };
+
+  const config = getStabilityConfig(task.stability);
+  const diffInfo = getDiffLabel(task.difficulty);
+
+  // 習慣タスクの表示判定
+  const showPlus = task.type === "habit" && (task.habit_type === "positive" || task.habit_type === "both" || !task.habit_type);
+  const showMinus = task.type === "habit" && (task.habit_type === "negative" || task.habit_type === "both");
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 100 : 1,
-    backgroundColor: task.is_completed ? "#1e293b" : task.color || "#334155",
+    backgroundColor: task.is_completed ? "#111113" : "#09090b",
   };
 
-  const diffInfo = getDiffLabel(task.difficulty);
-  const showPlus = task.type === "habit" && (task.habit_type === "positive" || task.habit_type === "both" || !task.habit_type);
-  const showMinus = task.type === "habit" && (task.habit_type === "negative" || task.habit_type === "both");
+  const glitchAnimation = (task.stability === 1 && !task.is_completed) ? {
+    x: [0, -2, 2, -1, 0],
+    transition: { duration: 0.2, repeat: Infinity, repeatDelay: Math.random() * 5 + 2 }
+  } : {};
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       style={style}
+      animate={glitchAnimation}
       onClick={() => onEdit(task)}
-      className={`p-4 rounded-xl shadow-lg border-l-4 border-black/20 transition-all cursor-pointer hover:brightness-110 active:scale-[0.98] flex items-center gap-3 ${
-        task.is_completed ? "opacity-40 grayscale" : ""
+      className={`relative p-4 rounded-xl border transition-all cursor-pointer overflow-hidden flex items-center gap-3 ${
+        task.is_completed ? "border-zinc-800 opacity-40" : `hover:border-zinc-500 ${config.border} ${config.glow}`
       }`}
     >
-      {/* 【ドラッグハンドル】 */}
-      <div
-        {...attributes}
-        {...listeners}
-        onClick={(e) => e.stopPropagation()}
-        className="cursor-grab active:cursor-grabbing p-1 text-white/40 hover:text-white/80 transition-colors"
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+      {/* 演出：スキャンライン */}
+      {!task.is_completed && (
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+      )}
+
+      {/* ドラッグハンドル */}
+      <div {...attributes} {...listeners} onClick={(e) => e.stopPropagation()} className="cursor-grab p-1 text-white/10 hover:text-white/40 z-10">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
           <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>
 
-      {/* メインエリア（横並び） */}
-      <div className="flex-1 flex justify-between items-center gap-4">
-        
-        {/* 左側：タイトル、期限、ノート、タグ（縦並び） */}
-        <div className="flex-1 flex flex-col gap-2">
-          
-          {/* 上段：期限、難易度（横並び） */}
-          <div className="flex gap-2 items-center text-[9px] font-black uppercase tracking-widest">
-            <span className={`px-1.5 py-0.5 rounded border bg-black/20 ${diffInfo.color}`}>
+      <div className="flex-1 flex justify-between items-center gap-4 z-10">
+        <div className="flex-1 flex flex-col gap-1.5">
+          <div className="flex gap-2 items-center text-[9px] font-black tracking-[0.2em]">
+            <span className={`px-1.5 py-0.5 rounded-sm border border-white/5 bg-zinc-900/80 ${diffInfo.color}`}>
               {diffInfo.text}
             </span>
             {task.type === "todo" && task.due_date && (
-              <span className="text-red-200 bg-red-900/40 px-1.5 py-0.5 rounded border border-red-500/30">
-                期限: {task.due_date}
+              <span className={`px-1.5 py-0.5 rounded-sm border border-red-900/30 bg-red-950/20 text-red-400`}>
+                LMT: {task.due_date}
               </span>
             )}
           </div>
 
-          {/* 中段：タイトル */}
-          <span className={`font-bold text-white drop-shadow-md text-base ${task.is_completed ? "line-through text-slate-400" : ""}`}>
+          <span className={`font-bold text-base leading-tight ${task.is_completed ? "line-through text-zinc-700" : "text-zinc-100"}`}>
             {task.title}
           </span>
 
-          {/* 下段：ノート（あれば） */}
+          {/* 【復元】おにい、ごめんね。ノート欄だよ */}
           {task.note && (
-            <p className="text-[11px] text-slate-200 leading-relaxed whitespace-pre-wrap opacity-80 line-clamp-3">
+            <p className="text-[11px] text-zinc-500 line-clamp-3 mt-0.5 leading-relaxed whitespace-pre-wrap">
               {task.note}
             </p>
           )}
 
-          {/* 下段：タグ（あれば） */}
+          {/* 【復元】おにい、タグもちゃんとここにあるよ */}
           {task.tags && task.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="flex flex-wrap gap-1 mt-1.5">
               {task.tags.map((tag: string) => (
-                <span 
-                  key={tag} 
-                  className="text-[9px] font-bold text-slate-100 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/10"
-                >
-                  {tag}
+                <span key={tag} className="text-[9px] font-medium text-zinc-400 bg-zinc-800/50 px-1.5 py-0.5 rounded border border-zinc-700/50">
+                  #{tag}
                 </span>
               ))}
             </div>
           )}
         </div>
 
-        {/* 右側：ボタンとカウンター部分 */}
+        {/* 右側：アクションボタン */}
         <div className="flex gap-3 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
           {task.type === "habit" ? (
             <div className="flex items-center gap-3">
-              {showPlus && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-bold text-white/70">{task.positive_count || 0}</span>
-                  <button
-                    onClick={() => updateHabitGrit(task, "plus")}
-                    className="bg-white/20 hover:bg-white/40 w-10 h-10 rounded-full font-black text-xl flex items-center justify-center transition-all active:scale-90"
-                  >＋</button>
-                </div>
-              )}
-              {showMinus && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-bold text-white/70">{task.negative_count || 0}</span>
-                  <button
-                    onClick={() => updateHabitGrit(task, "minus")}
-                    className="bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full font-black text-xl flex items-center justify-center transition-all active:scale-90"
-                  >－</button>
-                </div>
-              )}
+              {/* 【修正】＋ボタン：場所を固定 */}
+              <div className="flex flex-col items-center gap-1 w-10">
+                {showPlus ? (
+                  <>
+                    <span className="text-[10px] font-mono text-zinc-600">{task.positive_count || 0}</span>
+                    <button onClick={() => updateHabitGrit(task, "plus")} className={`w-10 h-10 rounded border ${config.border} bg-zinc-900 flex items-center justify-center font-bold ${config.color} hover:bg-zinc-800 transition-all`}>＋</button>
+                  </>
+                ) : (
+                  <div className="w-10 h-11" /* スペースを確保 */ />
+                )}
+              </div>
+              
+              {/* 【修正】－ボタン：場所を固定 */}
+              <div className="flex flex-col items-center gap-1 w-10">
+                {showMinus ? (
+                  <>
+                    <span className="text-[10px] font-mono text-zinc-600">{task.negative_count || 0}</span>
+                    <button onClick={() => updateHabitGrit(task, "minus")} className="w-10 h-10 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center font-bold text-zinc-500 hover:bg-zinc-800 transition-all">－</button>
+                  </>
+                ) : (
+                  <div className="w-10 h-11" /* スペースを確保 */ />
+                )}
+              </div>
             </div>
           ) : (
             <button
               onClick={() => completeTask(task)}
               disabled={task.is_completed}
-              className="bg-black/20 hover:bg-black/30 px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95 disabled:opacity-50 text-white"
+              className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all duration-500 ${
+                task.is_completed 
+                ? "border-zinc-800 bg-zinc-800 text-zinc-500" 
+                : `${config.border} bg-transparent ${config.color} hover:scale-105 ${config.glow}`
+              }`}
             >
-              {task.is_completed ? "済" : "達成"}
+              {task.is_completed ? (
+                <div className="w-4 h-4 bg-zinc-600 rounded-sm animate-pulse" />
+              ) : (
+                <div className={`w-3 h-3 border-2 ${config.border} opacity-50`} />
+              )}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -107,7 +107,7 @@ export default function TaskForm({
       <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
         {selectedType === "habit" && (
           <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
-            <span className="text-[10px] text-slate-500 font-black uppercase"></span>
+            <span className="text-[10px] text-slate-500 font-black uppercase">ボタン配置</span>
             <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
               {[
                 { id: "positive", label: "＋" },
@@ -136,7 +136,10 @@ export default function TaskForm({
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="bg-transparent text-[10px] text-white focus:outline-none invert filter"
+              /* - color-scheme-dark: ブラウザ標準のカレンダーアイコンを白くする魔法
+                - text-white: 文字をハッキリ白にする
+              */
+              className="bg-transparent text-[10px] text-white focus:outline-none [color-scheme:dark] font-mono cursor-pointer"
             />
           </div>
         )}
@@ -164,21 +167,7 @@ export default function TaskForm({
       </div>
 
       {/* カラー選択と種別切り替え */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="flex gap-2.5 bg-slate-900/80 p-2 rounded-full border border-slate-700">
-          {colors.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setSelectedColor(c)}
-              className={`w-5 h-5 rounded-full border-2 transition-all ${
-                selectedColor === c ? "border-white scale-125 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
-              }`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
-
+      <div className="flex items-center justify-end pt-2">
         <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-700">
           {["habit", "daily", "todo"].map((type) => (
             <button
@@ -200,14 +189,14 @@ export default function TaskForm({
         {editingTask ? (
           <>
             <button onClick={deleteTask} className="bg-red-900/30 border border-red-500/50 text-red-400 py-3 rounded-xl font-black text-xs hover:bg-red-900/50 transition-colors">削除</button>
-            <button onClick={updateTask} className="bg-green-600 text-white py-3 rounded-xl font-black text-xs shadow-lg shadow-green-900/20 active:scale-95 transition-all">クエスト更新</button>
+            <button onClick={updateTask} className="bg-green-600 text-white py-3 rounded-xl font-black text-xs shadow-lg shadow-green-900/20 active:scale-95 transition-all">更新</button>
           </>
         ) : (
           <button 
             onClick={addTask} 
             className="col-span-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-black text-sm shadow-xl shadow-purple-900/20 active:scale-[0.98] transition-all"
           >
-            Questを受ける (追加)
+            作成
           </button>
         )}
       </div>

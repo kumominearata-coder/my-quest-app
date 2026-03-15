@@ -12,12 +12,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ✅ metadata から themeColor と viewport を削除
 export const metadata = {
   title: "Quest Log",
   description: "おにい専用のクエスト管理アプリ",
-  manifest: "/manifest.json", // これを追加！
+  manifest: "/manifest.json",
+};
+
+// ✅ 新しく viewport 専門の export を作る
+export const viewport = {
   themeColor: "#020617",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0", // スマホでズームしすぎない設定
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // user-scalable=0 は false と書くよ
 };
 
 export default function RootLayout({
