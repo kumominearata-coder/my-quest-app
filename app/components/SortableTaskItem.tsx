@@ -52,7 +52,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
       style={style}
       animate={glitchAnimation}
       onClick={() => onEdit(task)}
-      className={`relative p-4 rounded-xl border transition-all cursor-pointer overflow-hidden flex items-center gap-3 ${
+      className={`relative p-2.5 rounded-xl border transition-all cursor-pointer overflow-hidden flex items-center gap-2 ${
         task.is_completed ? "border-zinc-800 opacity-40" : `hover:border-zinc-500 ${config.border} ${config.glow}`
       }`}
     >
@@ -68,9 +68,9 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
         </svg>
       </div>
 
-      <div className="flex-1 flex justify-between items-center gap-4 z-10">
+      <div className="flex-1 flex justify-between items-center gap-3 z-10">
         <div className="flex-1 flex flex-col gap-1.5">
-          <div className="flex gap-2 items-center text-[9px] font-black tracking-[0.2em]">
+          <div className="flex gap-2 items-center text-[10px] font-black tracking-[0.2em]">
             <span className={`px-1.5 py-0.5 rounded-sm border border-white/5 bg-zinc-900/80 ${diffInfo.color}`}>
               {diffInfo.text}
             </span>
@@ -81,13 +81,13 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
             )}
           </div>
 
-          <span className={`font-bold text-base leading-tight ${task.is_completed ? "line-through text-zinc-700" : "text-zinc-100"}`}>
+          <span className={`font-bold text-[17px] leading-tight ${task.is_completed ? "line-through text-zinc-700" : "text-zinc-100"}`}>
             {task.title}
           </span>
 
           {/* 【復元】おにい、ごめんね。ノート欄だよ */}
           {task.note && (
-            <p className="text-[11px] text-zinc-500 line-clamp-3 mt-0.5 leading-relaxed whitespace-pre-wrap">
+            <p className="text-[12.5px] text-zinc-400 line-clamp-3 mt-0.5 leading-relaxed whitespace-pre-wrap">
               {task.note}
             </p>
           )}
@@ -105,47 +105,47 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
         </div>
 
         {/* 右側：アクションボタン */}
-        <div className="flex gap-3 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+<div className="flex gap-2 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
           {task.type === "habit" ? (
-            <div className="flex items-center gap-3">
-              {/* 【修正】＋ボタン：場所を固定 */}
-              <div className="flex flex-col items-center gap-1 w-10">
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col items-center w-9">
                 {showPlus ? (
                   <>
-                    <span className="text-[10px] font-mono text-zinc-600">{task.positive_count || 0}</span>
-                    <button onClick={() => updateHabitGrit(task, "plus")} className={`w-10 h-10 rounded border ${config.border} bg-zinc-900 flex items-center justify-center font-bold ${config.color} hover:bg-zinc-800 transition-all`}>＋</button>
+                    <span className="text-[11px] font-mono text-zinc-500">{task.positive_count || 0}</span>
+                    {/* ボタンサイズを w-10 -> w-9 に微縮小 */}
+                    <button onClick={() => updateHabitGrit(task, "plus")} className={`w-9 h-9 rounded border ${config.border} bg-zinc-900 flex items-center justify-center font-bold ${config.color} hover:bg-zinc-800 transition-all`}>＋</button>
                   </>
                 ) : (
-                  <div className="w-10 h-11" /* スペースを確保 */ />
+                  <div className="w-9 h-12" />
                 )}
               </div>
               
-              {/* 【修正】－ボタン：場所を固定 */}
-              <div className="flex flex-col items-center gap-1 w-10">
+              <div className="flex flex-col items-center w-9">
                 {showMinus ? (
                   <>
-                    <span className="text-[10px] font-mono text-zinc-600">{task.negative_count || 0}</span>
-                    <button onClick={() => updateHabitGrit(task, "minus")} className="w-10 h-10 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center font-bold text-zinc-500 hover:bg-zinc-800 transition-all">－</button>
+                    <span className="text-[11px] font-mono text-zinc-500">{task.negative_count || 0}</span>
+                    <button onClick={() => updateHabitGrit(task, "minus")} className="w-9 h-9 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center font-bold text-zinc-500 hover:bg-zinc-800 transition-all">－</button>
                   </>
                 ) : (
-                  <div className="w-10 h-11" /* スペースを確保 */ />
+                  <div className="w-9 h-12" />
                 )}
               </div>
             </div>
           ) : (
+            /* TODO完了ボタンも w-12 -> w-10 に圧縮 */
             <button
               onClick={() => completeTask(task)}
               disabled={task.is_completed}
-              className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all duration-500 ${
+              className={`w-10 h-10 rounded border-2 flex items-center justify-center transition-all duration-500 ${
                 task.is_completed 
                 ? "border-zinc-800 bg-zinc-800 text-zinc-500" 
                 : `${config.border} bg-transparent ${config.color} hover:scale-105 ${config.glow}`
               }`}
             >
               {task.is_completed ? (
-                <div className="w-4 h-4 bg-zinc-600 rounded-sm animate-pulse" />
+                <div className="w-3 h-3 bg-zinc-600 rounded-sm" />
               ) : (
-                <div className={`w-3 h-3 border-2 ${config.border} opacity-50`} />
+                <div className={`w-2 h-2 border ${config.border} opacity-50`} />
               )}
             </button>
           )}

@@ -42,24 +42,30 @@ export const useTasks = () => {
     const now = new Date().getTime();
 
 // 1. TODOタスク：放置された時間で判定
-    if (task.type === "todo") {
-      const createdAt = new Date(task.created_at).getTime();
-      const hoursPast = (now - createdAt) / (1000 * 60 * 60);
+if (task.type === "todo") {
+      // 1. 作成日時を確実にパースする
+      const createdTime = task.created_at ? new Date(task.created_at).getTime() : now;
       
-      // 期限切れチェック用の今日の日付
+      // 2. パースに失敗(NaN)したら、とりあえず「今作った」ことにして赤色化を防ぐ
+      const safeCreatedTime = isNaN(createdTime) ? now : createdTime;
+      
+      const hoursPast = (now - safeCreatedTime) / (1000 * 60 * 60);
+      
+      // 3. 期限切れ判定用の文字列（JST基準）
       const todayStr = new Date(now - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
-      // 【優先判定】期限が設定されていて、かつ今日を過ぎていたら即「ルージュ（1）」
+      // 【最優先】期限が設定されていて、かつ今日を過ぎていたら赤
       if (task.due_date && task.due_date < todayStr) {
         return 1;
       }
 
-      // 【鮮度判定】おにいの希望通り、created_at（作成時）を基準に固定。
-      if (hoursPast <= 12) return 5;  // 12時間以内：最上
-      if (hoursPast <= 24) return 4;  // 1日以内：良好
-      if (hoursPast <= 72) return 3;  // 3日以内：通常
-      if (hoursPast <= 168) return 2; // 1週間以内：注意
-      return 1;                       // 1週間以上放置：危険
+      // 【鮮度判定】計算された hoursPast に基づいて判定
+      // safeCreatedTime を使っているから、作成直後なら hoursPast は 0 に近くなるはずだよ
+      if (hoursPast <= 12) return 5;
+      if (hoursPast <= 24) return 4;
+      if (hoursPast <= 72) return 3;
+      if (hoursPast <= 168) return 2;
+      return 1;
     }
 
     // 2. 習慣タスク：積み上げた功績（スコア差分）で判定
