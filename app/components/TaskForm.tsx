@@ -9,10 +9,10 @@ type TaskFormProps = {
   setTagsInput: (value: string) => void;
   selectedType: string;
   setSelectedType: (type: string) => void;
-  selectedColor: string;
-  setSelectedColor: (color: string) => void;
-  selectedDiff: number;
-  setSelectedDiff: (diff: number) => void;
+  rewardGrit: number;
+  setRewardGrit: (value: number) => void;
+  penaltyGrit: number;
+  setPenaltyGrit: (value: number) => void;
   habitType: string; 
   setHabitType: (value: string) => void;
   dueDate: string;
@@ -33,10 +33,8 @@ export default function TaskForm({
   setTagsInput,
   selectedType,
   setSelectedType,
-  selectedColor,
-  setSelectedColor,
-  selectedDiff,
-  setSelectedDiff,
+  rewardGrit, setRewardGrit, 
+  penaltyGrit, setPenaltyGrit,
   habitType,
   setHabitType,
   dueDate,
@@ -47,8 +45,6 @@ export default function TaskForm({
   deleteTask,
   cancelEdit,
 }: TaskFormProps) {
-  const colors = ["#6366f1", "#ec4899", "#22c55e", "#eab308", "#94a3b8"];
-  
   const difficulties = [
     { label: "Easy", value: 1, color: "text-blue-400" },
     { label: "Normal", value: 2, color: "text-green-400" },
@@ -145,28 +141,33 @@ export default function TaskForm({
         )}
       </div>
       
-      {/* 難易度設定 */}
-      <div className="space-y-2 bg-slate-900/50 p-3 rounded-2xl border border-slate-700/50">
-        <span className="text-[10px] text-slate-500 uppercase font-black ml-1">難易度</span>
-        <div className="flex justify-between gap-2">
-          {difficulties.map((d) => (
-            <button
-              key={d.value}
-              type="button"
-              onClick={() => setSelectedDiff(d.value)}
-              className={`flex-1 py-2.5 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center ${
-                selectedDiff === d.value 
-                  ? "bg-slate-700 border-white/50 scale-105 shadow-lg ring-2 ring-white/10" 
-                  : "bg-slate-900 border-slate-700 opacity-40 hover:opacity-80"
-              } ${d.color}`}
-            >
-              {d.label}
-            </button>
-          ))}
+      {/* 報酬と担保の設定エリア */}
+      <div className="grid grid-cols-2 gap-3 bg-slate-900/50 p-3 rounded-2xl border border-slate-700/50">
+        <div className="space-y-1.5">
+          <label className="text-[10px] text-amber-400 uppercase font-black ml-1 flex items-center gap-1">
+            <span>🪙</span> 報酬 (Reward)
+          </label>
+          <input 
+            type="number"
+            value={rewardGrit}
+            onChange={(e) => setRewardGrit(Number(e.target.value))}
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-center focus:ring-1 focus:ring-amber-500 outline-none"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[10px] text-red-400 uppercase font-black ml-1 flex items-center gap-1">
+            <span>⚖️</span> 担保 (Penalty)
+          </label>
+          <input 
+            type="number"
+            value={penaltyGrit}
+            onChange={(e) => setPenaltyGrit(Number(e.target.value))}
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-center focus:ring-1 focus:ring-red-500 outline-none"
+          />
         </div>
       </div>
 
-      {/* カラー選択と種別切り替え */}
+      {/* 種別切り替え */}
       <div className="flex items-center justify-end pt-2">
         <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-700">
           {["habit", "daily", "todo"].map((type) => (
