@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 
-export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGrit, getDiffLabel }: any) {
+export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGrit }: any) {
   const {
     attributes,
     listeners,
@@ -27,7 +27,6 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
   };
 
   const config = getStabilityConfig(task.stability);
-  const diffInfo = getDiffLabel(task.difficulty);
 
   // 習慣タスクの表示判定
   const showPlus = task.type === "habit" && (task.habit_type === "positive" || task.habit_type === "both" || !task.habit_type);
@@ -68,31 +67,35 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
         </svg>
       </div>
 
+      {/* 報酬と担保の表示 */}
       <div className="flex-1 flex justify-between items-center gap-3 z-10">
-        <div className="flex-1 flex flex-col gap-1.5">
-          <div className="flex gap-2 items-center text-[10px] font-black tracking-[0.2em]">
-            <span className={`px-1.5 py-0.5 rounded-sm border border-white/5 bg-zinc-900/80 ${diffInfo.color}`}>
-              {diffInfo.text}
-            </span>
+        <div className="flex-1 flex flex-col gap-0.5">
+          <div className="flex gap-2 items-center text-[10px] font-black tracking-widest font-mono">
+            <div className="px-1.5 py-0.5 rounded-sm border border-white/5 bg-zinc-900/80 flex gap-1.5">
+              <span className="text-amber-400">＋{task.reward_grit || 0}</span>
+              <span className="text-zinc-600">/</span>
+              <span className="text-red-400">－{task.penalty_grit || 0}</span>
+            </div>
             {task.type === "todo" && task.due_date && (
-              <span className={`px-1.5 py-0.5 rounded-sm border border-red-900/30 bg-red-950/20 text-red-400`}>
+              <span className="px-1.5 py-0.5 rounded-sm border border-red-900/30 bg-red-950/20 text-red-400 uppercase">
                 LMT: {task.due_date}
               </span>
             )}
           </div>
 
+          {/* タイトル */}
           <span className={`font-bold text-[17px] leading-tight ${task.is_completed ? "line-through text-zinc-700" : "text-zinc-100"}`}>
             {task.title}
           </span>
 
-          {/* 【復元】おにい、ごめんね。ノート欄だよ */}
+          {/* 概要欄 */}
           {task.note && (
             <p className="text-[12.5px] text-zinc-400 line-clamp-3 mt-0.5 leading-relaxed whitespace-pre-wrap">
               {task.note}
             </p>
           )}
 
-          {/* 【復元】おにい、タグもちゃんとここにあるよ */}
+          {/* タグ */}
           {task.tags && task.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
               {task.tags.map((tag: string) => (

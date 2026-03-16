@@ -32,15 +32,6 @@ export default function TaskList({
     })
   );
 
-  const getDiffLabel = (diff: number) => {
-    switch (diff) {
-      case 1: return { text: "Easy", color: "text-blue-300 border-blue-500/50" };
-      case 3: return { text: "Hard", color: "text-orange-300 border-orange-500/50" };
-      case 4: return { text: "Lunatic", color: "text-red-300 border-red-500/50" };
-      default: return { text: "Normal", color: "text-green-300 border-green-500/50" };
-    }
-  };
-
   const filteredTasks = tasks
     .filter((t) => t.type === activeTab)
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -48,7 +39,7 @@ export default function TaskList({
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
     
-    if (over && active.id !== over.id) {
+  if (over && active.id !== over.id) {
       const oldIndex = filteredTasks.findIndex((t) => t.id === active.id);
       const newIndex = filteredTasks.findIndex((t) => t.id === over.id);
       
@@ -96,7 +87,6 @@ export default function TaskList({
                   key={task.id} 
                   id={task.id} 
                   task={task} 
-                  getDiffLabel={getDiffLabel}
                   completeTask={completeTask}
                   onEdit={onEdit}
                   updateHabitGrit={updateHabitGrit}
