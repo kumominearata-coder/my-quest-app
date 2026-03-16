@@ -51,7 +51,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
       style={style}
       animate={glitchAnimation}
       onClick={() => onEdit(task)}
-      className={`relative p-2.5 rounded-xl border transition-all cursor-pointer overflow-hidden flex items-center gap-2 ${
+      className={`relative pt-2 pb-2 px-2.5 rounded-xl border transition-all cursor-pointer overflow-hidden flex items-center gap-2 ${
         task.is_completed ? "border-zinc-800 opacity-40" : `hover:border-zinc-500 ${config.border} ${config.glow}`
       }`}
     >
@@ -69,8 +69,8 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
 
       {/* 報酬と担保の表示 */}
       <div className="flex-1 flex justify-between items-center gap-3 z-10">
-        <div className="flex-1 flex flex-col gap-0.5">
-          <div className="flex gap-2 items-center text-[10px] font-black tracking-widest font-mono">
+        <div className="flex-1 flex flex-col gap-1.5">
+          <div className="flex gap-2 items-center text-[11px] font-black tracking-widest font-mono">
             <div className="px-1.5 py-0.5 rounded-sm border border-white/5 bg-zinc-900/80 flex gap-1.5">
               <span className="text-amber-400">＋{task.reward_grit || 0}</span>
               <span className="text-zinc-600">/</span>
