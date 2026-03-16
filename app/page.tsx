@@ -8,8 +8,13 @@ import TaskForm from "./components/TaskForm"; // 入力フォーム
 import TaskList from "./components/TaskList"; // タスクのリスト表示
 import ReviewModal from "./components/ReviewModal"; // 朝の反省会モーダル
 import Toast from "./components/Toast"; // ポップアップ通知
+import GameHub from "./components/GameHub"; // これから作るゲーム画面をインポート
 
 export default function Home() {
+
+  // 🌿 今「タスク(task)」か「ゲーム(game)」どっちの画面にいるかを決める
+  const [viewMode, setViewMode] = useState<'task' | 'game'>('task');
+
   // ---------------------------------------------------------
   // 🧠 【心臓部との接続】
   // useTasks.ts（別ファイル）で作ったデータや関数を、ここで使えるように借りてくるよ
@@ -117,10 +122,18 @@ export default function Home() {
   // ⏳ 読み込み中は「ロード中」だけ出すよ
   if (!isLoaded) return <div className="text-white text-center mt-20 font-bold">ロード中...</div>;
 
-  return (
-    <main className="flex min-h-screen flex-col items-center bg-slate-950 text-white pb-40 overflow-hidden relative">
+return (
+    <main className="flex min-h-screen flex-col items-center bg-slate-950 text-white overflow-hidden relative">
+
+      {/* 🌿 【重要】viewMode が 'task' の時（いつもの画面） */}
+      {viewMode === 'task' ? (
+        <>
       {/* 📊 ステータス表示（一番上のバー） */}
-      <StatusBoard grit={grit} />
+      <StatusBoard 
+            grit={grit} 
+            viewMode={viewMode} 
+            onViewChange={setViewMode} 
+          />
 
       {/* 🌅 【朝の反省会】対象タスクが1つでもある時だけ、最前面に表示するよ */}
       {reviewTasks.length > 0 && (
@@ -173,6 +186,13 @@ export default function Home() {
           </div>
         </div>
       </div>
+</>
+      ) : (
+        /* viewMode が 'game' の時だけ表示される新しい画面 */
+        <div className="w-full flex-1 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <GameHub grit={grit} onBack={() => setViewMode('task')} />
+        </div>
+      )}
 
       {/* 🖼️ 【入力・編集モーダル】ボタンを押した時だけフワッと出てくるよ */}
       {isModalOpen && (
