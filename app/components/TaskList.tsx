@@ -70,7 +70,7 @@ export default function TaskList({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-md mx-auto pb-24">
       <DndContext 
         sensors={sensors} 
         collisionDetection={closestCenter} 
