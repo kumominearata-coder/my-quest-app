@@ -40,9 +40,21 @@ export const useTasks = () => {
   };
 
   // ---------------------------------------------------------
+  // 📆 【曜日判定ロジック】
+  // 今日がそのタスクの対象曜日か判定する
+  // ---------------------------------------------------------    
+  const isTaskActiveToday = (task: any) => {
+    if (task.type !== "daily") return true; // 日課以外は常にアクティブ
+    if (!task.target_days || task.target_days.length === 0) return true; // 設定なしは毎日
+  
+    const today = new Date().getDay(); // 0(日) 〜 6(土)
+    return task.target_days.includes(today);
+  };
+
+  // ---------------------------------------------------------
   // 📊 【安定度計算ロジック】
   // タスクの「色の変化」を決める計算式だよ。ここをいじると難易度を変えられるよ。
-  // ---------------------------------------------------------
+  // ---------------------------------------------------------  
   const getTaskStability = (task: any) => {
     const now = new Date().getTime();
 
@@ -118,7 +130,7 @@ export const useTasks = () => {
     const lastProcessDate = localStorage.getItem("lastProcessDate");
     if (hour >= 5 && lastProcessDate !== todayStr) {
       // 前日のやり残しを探す
-      const incompleteDailies = tasksWithStability.filter(t => t.type === "daily" && !t.is_completed);
+      const incompleteDailies = tasksWithStability.filter(t => t.type === "daily" && !t.is_completed && isTaskActiveToday(t));
       const overdueTodos = tasksWithStability.filter(t => t.type === "todo" && !t.is_completed && t.due_date && t.due_date < todayStr);
       const allReviewTargets = [...incompleteDailies, ...overdueTodos];
 
@@ -191,6 +203,23 @@ export const useTasks = () => {
       // 日課なら「完了フラグ」を立てる
       await supabase.from("tasks").update({ is_completed: true }).eq("id", task.id);
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true } : t));
+    }
+  };
+
+  // ✅ 【タスクスキップ】日課を「今日はやらない」ことにする時
+  const skipTask = async (task: any) => {
+    // スキップなので音は鳴らさないか、控えめな音にするといいかも
+    safeVibrate(50); 
+
+    if (task.type === "daily") {
+      // 日課なら、Gritは増やさずに「完了フラグ」だけ立てて、明日のリセットまで待機させる
+      await supabase.from("tasks").update({ is_completed: true }).eq("id", task.id);
+    
+      setTasks(prev => prev.map(t => 
+        t.id === task.id ? { ...t, is_completed: true } : t
+      ));
+
+    showNiceMessage(`${task.name} をスキップしたよ。`);
     }
   };
 
@@ -277,7 +306,7 @@ export const useTasks = () => {
     grit, setGrit, tasks, setTasks, isLoaded, activeTab, setActiveTab, tabs,
     reviewTasks, 
     handleReviewFinish,
-    updateHabitGrit, completeTask,
+    updateHabitGrit, completeTask, skipTask,
     toastMessage, showToast, setShowToast, showNiceMessage,
     addTask, updateTask, deleteTask
   };

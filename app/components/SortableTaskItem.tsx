@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 
-export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGrit }: any) {
+export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, updateHabitGrit }: any) {
   const {
     attributes,
     listeners,
@@ -14,6 +14,21 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
     isDragging,
   } = useSortable({ id });
 
+  // 今日の曜日を取得（0:日 〜 6:土）
+  const today = new Date().getDay();
+
+  // 曜日タスクの「今日はお休み」判定
+  // 日課タスクである & 曜日設定が存在 & 今日の曜日が含まれていない場合
+  const isOffDay = task.type === "daily" && 
+                   task.target_days && 
+                   !task.target_days.includes(today);
+
+  // 表示用の透明度と操作権限を計算
+  // すでに完了しているか、今日がお休みなら薄くする
+  const isInactive = task.is_completed || isOffDay;
+  const itemOpacity = isInactive ? "opacity-40" : "opacity-100";
+  const pointerEvents = "pointer-events-auto";
+  
   // --- 【5段階のシステム安定度：色の定義】 ---
   const getStabilityConfig = (level: number) => {
     switch (level) {
@@ -32,12 +47,15 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
   const showPlus = task.type === "habit" && (task.habit_type === "positive" || task.habit_type === "both" || !task.habit_type);
   const showMinus = task.type === "habit" && (task.habit_type === "negative" || task.habit_type === "both");
 
+  // 背景色の決定
+  const backgroundColor = (isOffDay || task.is_completed) ? "#111113" : "#09090b";
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 100 : 1,
-    backgroundColor: task.is_completed ? "#111113" : "#09090b",
+    backgroundColor: backgroundColor
   };
 
   const glitchAnimation = (task.stability === 1 && !task.is_completed) ? {
@@ -52,8 +70,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
       animate={glitchAnimation}
       onClick={() => onEdit(task)}
       className={`relative pt-2 pb-2 px-2.5 rounded-xl border transition-all cursor-pointer overflow-hidden flex items-center gap-2 ${
-        task.is_completed ? "border-zinc-800 opacity-40" : `hover:border-zinc-500 ${config.border} ${config.glow}`
-      }`}
+        (task.is_completed || isOffDay) ? "border-zinc-800 opacity-40" : `hover:border-zinc-500 ${config.border} ${config.glow}`} ${itemOpacity} ${pointerEvents}`}
     >
       {/* 演出：スキャンライン */}
       {!task.is_completed && (
@@ -83,9 +100,9 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
             )}
           </div>
 
-          {/* タイトル */}
-          <span className={`font-bold text-[17px] leading-tight ${task.is_completed ? "line-through text-zinc-700" : "text-zinc-100"}`}>
-            {task.title}
+          {/* タイトル */} 
+          <span className={`font-bold text-[17px] leading-tight ${task.is_completed ? "line-through text-zinc-700" : (isOffDay ? "text-zinc-600" : "text-zinc-100")}`}>
+            {task.title} 
           </span>
 
           {/* 概要欄 */}
@@ -108,14 +125,20 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
         </div>
 
         {/* 右側：アクションボタン */}
-<div className="flex gap-2 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
-          {task.type === "habit" ? (
+        <div className="flex gap-2 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+         {isOffDay ? (
+           // 指定曜日外（OFF）の場合の表示
+           <div className="px-2 py-1.5 text-[13px] font-black font-mono text-zinc-500 tracking-widest border border-zinc-700 rounded bg-zinc-900/50 select-none">
+             OFF
+           </div>
+
+          // 習慣タスク
+          ) : task.type === "habit" ? (
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-center w-9">
                 {showPlus ? (
                   <>
                     <span className="text-[11px] font-mono text-zinc-500">{task.positive_count || 0}</span>
-                    {/* ボタンサイズを w-10 -> w-9 に微縮小 */}
                     <button onClick={() => updateHabitGrit(task, "plus")} className={`w-9 h-9 rounded border ${config.border} bg-zinc-900 flex items-center justify-center font-bold ${config.color} hover:bg-zinc-800 transition-all`}>＋</button>
                   </>
                 ) : (
@@ -135,22 +158,31 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, updateHabitGr
               </div>
             </div>
           ) : (
-            /* TODO完了ボタンも w-12 -> w-10 に圧縮 */
+
+          <div className="flex items-center gap-2.5">
+
+          {/* 日課で未完了の時だけスキップボタンを表示 */}
+          {task.type === "daily" && !task.is_completed && (
+           <button
+             onClick={() => skipTask(task)}
+             className="text-[10px] font-black text-zinc-600 hover:text-zinc-400 px-2 py-1 border border-zinc-800 rounded uppercase tracking-tighter transition-colors"
+            >
+             Skip
+            </button>
+           )}
+
+           {/* 既存の完了ボタン */}
             <button
               onClick={() => completeTask(task)}
               disabled={task.is_completed}
-              className={`w-10 h-10 rounded border-2 flex items-center justify-center transition-all duration-500 ${
+              className={`w-8 h-8 rounded border-3 flex items-center justify-center transition-all duration-500 ${
                 task.is_completed 
                 ? "border-zinc-800 bg-zinc-800 text-zinc-500" 
                 : `${config.border} bg-transparent ${config.color} hover:scale-105 ${config.glow}`
               }`}
             >
-              {task.is_completed ? (
-                <div className="w-3 h-3 bg-zinc-600 rounded-sm" />
-              ) : (
-                <div className={`w-2 h-2 border ${config.border} opacity-50`} />
-              )}
-            </button>
+              </button>
+            </div>
           )}
         </div>
       </div>

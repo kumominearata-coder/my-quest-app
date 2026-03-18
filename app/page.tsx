@@ -31,6 +31,7 @@ export default function Home() {
     handleReviewFinish, // 【重要】反省会が終わった時に実行される処理
     updateHabitGrit,    // 習慣の＋ーを押した時の処理
     completeTask,       // タスクを完了させた時の処理
+    skipTask,           // タスクをスキップした時の処理
     toastMessage,       // 通知に出すメッセージ
     showToast,          // 通知を今出しているかどうかの旗
     setShowToast,       // 通知の表示・非表示を切り替える道具
@@ -51,6 +52,7 @@ export default function Home() {
   const [penaltyGrit, setPenaltyGrit] = useState(10); // 担保（）は初期値
   const [habitType, setHabitType] = useState("positive"); // 良い習慣か悪い習慣か
   const [dueDate, setDueDate] = useState(""); // 期限
+  const [targetDays, setTargetDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]); // 日課の対象曜日
 
   // 🖊️ 【編集ボタンを押した時】
   // 選んだタスクの情報を、入力フォームに自動でセットして画面を開く
@@ -64,6 +66,7 @@ export default function Home() {
     setPenaltyGrit(task.penalty_grit || 0); 
     setHabitType(task.habit_type || "positive");
     setDueDate(task.due_date || "");
+    setTargetDays(task.target_days || [0, 1, 2, 3, 4, 5, 6]); 
     setIsModalOpen(true);
   };
 
@@ -76,10 +79,14 @@ export default function Home() {
     setNote("");
     setTagsInput("");
     setDueDate("");
+    setTargetDays([0, 1, 2, 3, 4, 5, 6]); 
+    setEditingTask(null);
   };
 
   // 💾 【保存・更新・削除の実行】
-  // フォームで書いた内容を、実際にDB（データベース）に送る命令だよ
+  // フォームで書いた内容を、実際にDB（データベース）に送る命令群
+
+  // 💾 新規追加
   const handleAddTask = async () => {
     const tagsArray = tagsInput ? tagsInput.split(",").map(t => t.trim()) : [];
     const minSortOrder = tasks.length > 0 ? Math.min(...tasks.map(t => t.sort_order || 0)) : 0;
@@ -87,23 +94,25 @@ export default function Home() {
     const success = await addTask({
       title: newTaskTitle, note, tags: tagsArray, type: selectedType,
       reward_grit: rewardGrit, penalty_grit: penaltyGrit, user_id: 1,
-      is_completed: false, habit_type: habitType, due_date: dueDate || null,
+      is_completed: false, habit_type: habitType, due_date: dueDate || null, target_days: targetDays,
       positive_count: 0, negative_count: 0, sort_order: minSortOrder - 1
     });
     if (success) closeModal();
   };
 
+  // 💾 更新
   const handleUpdateTask = async () => {
     if (!editingTask) return;
     const tagsArray = tagsInput ? tagsInput.split(",").map(t => t.trim()) : [];
     const success = await updateTask(editingTask.id, {
       title: newTaskTitle, note, tags: tagsArray, type: selectedType,
       reward_grit: rewardGrit, penalty_grit: penaltyGrit, habit_type: habitType,
-      due_date: dueDate || null,
+      due_date: dueDate || null, target_days: targetDays,
     });
     if (success) closeModal();
   };
 
+    // 💾 削除
   const handleDeleteTask = async () => {
     if (!editingTask || !confirm("このクエストを破棄するの？")) return;
     const success = await deleteTask(editingTask.id);
@@ -155,6 +164,7 @@ return (
               setActiveTab={setActiveTab} 
               onEdit={startEditing} 
               completeTask={completeTask} 
+              skipTask={skipTask}
               updateHabitGrit={updateHabitGrit} 
               setTasks={setTasks} 
             />
@@ -207,6 +217,7 @@ return (
                 penaltyGrit={penaltyGrit} setPenaltyGrit={setPenaltyGrit}
                 habitType={habitType} setHabitType={setHabitType}
                 dueDate={dueDate} setDueDate={setDueDate}
+                targetDays={targetDays} setTargetDays={setTargetDays}
                 addTask={handleAddTask}
                 updateTask={handleUpdateTask}
                 deleteTask={handleDeleteTask}

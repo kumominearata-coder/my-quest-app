@@ -17,6 +17,8 @@ type TaskFormProps = {
   setHabitType: (value: string) => void;
   dueDate: string;
   setDueDate: (value: string) => void;
+  targetDays: number[];
+  setTargetDays: (days: number[]) => void;
   addTask: () => void;
   editingTask: any | null;
   updateTask: () => void;
@@ -39,6 +41,8 @@ export default function TaskForm({
   setHabitType,
   dueDate,
   setDueDate,
+  targetDays,
+  setTargetDays,
   addTask,
   editingTask,
   updateTask,
@@ -76,6 +80,27 @@ export default function TaskForm({
         </button>
       </div>
 
+      {/* 種別切り替え */}
+      <div className="flex items-center justify-center pt-2 pb-1">
+        <div className="flex bg-slate-900 w-full rounded-xl p-1 border border-slate-700">
+          {["habit", "daily", "todo"].map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setSelectedType(type)}
+              className={`flex-1 py-2.5 rounded-lg text-[14px] font-black transition-all ${
+                selectedType === type 
+                  ? "bg-purple-700 text-white shadow-inner scale-95" 
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              {type === "habit" ? "✨ 習慣" : type === "daily" ? "📅 日課" : "📜 To Do"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* タイトル欄 */}
       <input
         type="text"
         value={newTaskTitle}
@@ -84,6 +109,7 @@ export default function TaskForm({
         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-white font-bold placeholder:text-slate-600"
       />
 
+      {/* ノート欄 */}
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -91,6 +117,7 @@ export default function TaskForm({
         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-white text-xs h-20 resize-none placeholder:text-slate-600"
       />
 
+      {/* タグ欄 */}
       <input
         type="text"
         value={tagsInput}
@@ -99,23 +126,23 @@ export default function TaskForm({
         className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-white text-[11px] placeholder:text-slate-600"
       />
 
-      {/* 条件付き設定エリア */}
+      {/* 習慣タスクの「＋」「－」ボタンの設定エリア */}
       <div className="flex flex-wrap gap-2 items-center min-h-[32px]">
         {selectedType === "habit" && (
           <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
-            <span className="text-[10px] text-slate-500 font-black uppercase">ボタン配置</span>
+            <span className="text-[12px] text-slate-500 font-black uppercase">　ボタン配置</span>
             <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
               {[
                 { id: "positive", label: "＋" },
                 { id: "negative", label: "－" },
-                { id: "both", label: "±" }
+                { id: "both", label: "＋/－" }
               ].map((h) => (
                 <button
                   key={h.id}
                   type="button"
                   onClick={() => setHabitType(h.id)}
                   className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${
-                    habitType === h.id ? "bg-slate-700 text-white shadow-md" : "text-slate-500 hover:text-slate-300"
+                    habitType === h.id ? "bg-purple-700 text-white shadow-inner scale-95" : "text-slate-500 hover:text-slate-300"
                   }`}
                 >
                   {h.label}
@@ -124,6 +151,48 @@ export default function TaskForm({
             </div>
           </div>
         )}
+
+      {/* 🌿 日課の場合の曜日選択 */}
+      {selectedType === "daily" && (
+        <div className="w-full flex flex-col gap-2 animate-in fade-in slide-in-from-left-2 duration-200 mt-1">
+          <span className="text-[12px] text-slate-500 font-black uppercase ml-1">実行する曜日</span>
+          <div className="flex justify-between bg-slate-900 rounded-xl p-1 border border-slate-700">
+            {[
+              { id: 1, label: "月" },
+              { id: 2, label: "火" },
+              { id: 3, label: "水" },
+              { id: 4, label: "木" },
+              { id: 5, label: "金" },
+              { id: 6, label: "土" },
+              { id: 0, label: "日" },
+            ].map((day) => {
+              const isSelected = targetDays.includes(day.id);
+              return (
+               <button
+                  key={day.id}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      // すでに選ばれていたら外す（ただし全部外れるのは防ぐと安全かも）
+                      setTargetDays(targetDays.filter(d => d !== day.id));
+                    } else {
+                      // 選ばれていなければ追加する
+                      setTargetDays([...targetDays, day.id]);
+                    }
+                  }}
+                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold transition-all ${
+                    isSelected 
+                      ? "bg-purple-700 text-white shadow-inner scale-95" 
+                      : "text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  {day.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
         {selectedType === "todo" && (
           <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700 animate-in fade-in slide-in-from-left-2 duration-200">
@@ -144,7 +213,7 @@ export default function TaskForm({
       {/* 報酬と担保の設定エリア */}
       <div className="grid grid-cols-2 gap-3 bg-slate-900/50 p-3 rounded-2xl border border-slate-700/50">
         <div className="space-y-1.5">
-          <label className="text-[10px] text-amber-400 uppercase font-black ml-1 flex items-center gap-1">
+          <label className="text-[12px] text-amber-400 uppercase font-black ml-1 flex items-center gap-1">
             <span>🪙</span> 報酬 (Reward)
           </label>
           <input 
@@ -155,7 +224,7 @@ export default function TaskForm({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] text-red-400 uppercase font-black ml-1 flex items-center gap-1">
+          <label className="text-[12px] text-red-400 uppercase font-black ml-1 flex items-center gap-1">
             <span>⚖️</span> 担保 (Penalty)
           </label>
           <input 
@@ -164,24 +233,6 @@ export default function TaskForm({
             onChange={(e) => setPenaltyGrit(Number(e.target.value))}
             className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-center focus:ring-1 focus:ring-red-500 outline-none"
           />
-        </div>
-      </div>
-
-      {/* 種別切り替え */}
-      <div className="flex items-center justify-end pt-2">
-        <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-700">
-          {["habit", "daily", "todo"].map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => setSelectedType(type)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                selectedType === type ? "bg-slate-700 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              {type === "habit" ? "習慣" : type === "daily" ? "日課" : "ToDo"}
-            </button>
-          ))}
         </div>
       </div>
 
