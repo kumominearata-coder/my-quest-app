@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react"; // 追加
+import { useState } from "react"; 
+import NotificationSetting from "./NotificationSetting"; // 通知設定コンポーネント
 import { useGameData } from "../hooks/game/useGameData";
 
 export default function GameHub({ grit, onBack }: { grit: number; onBack: () => void }) {
@@ -87,8 +88,16 @@ export default function GameHub({ grit, onBack }: { grit: number; onBack: () => 
                 )}
               </div>
             </div>
-          </div>
-        )}
+
+            {/* 🌿 システム通知設定：ステータス画面の最後に配置 */}
+              <div className="mt-12 w-full max-w-[240px] animate-in fade-in duration-700 delay-300">
+                <NotificationSetting />
+                <p className="text-[8px] text-slate-600 text-center mt-2 uppercase tracking-widest font-mono">
+                  Signal Sync / Push Protocol
+                </p>
+              </div>
+             </div>
+             )}
 
         {/* --- 🌿 編成画面（DECK）の中身 --- */}
         {view === 'party' && (
