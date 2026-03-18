@@ -22,44 +22,42 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export async function subscribeToPush() {
-  console.log("① subscribeToPush が呼ばれたよ");
-
-  if (!('serviceWorker' in navigator)) {
-    console.error("② ブラウザが Service Worker に対応してないよ");
-    return null;
-  }
+  if (!('serviceWorker' in navigator)) return null;
 
   try {
-    // 🌿 ここ！「待つ」前に「登録」を明示的に呼ぶ
-    console.log("②.5 Service Worker を登録しにいくよ...");
-    await navigator.serviceWorker.register('/sw.js'); 
+    // 1. まず現在の許可状態をチェック
+    let permission = Notification.permission;
+    console.log("現在の権限:", permission);
 
-    console.log("③ Service Worker の準備完了(ready)を待ってるよ...");
-    const registration = await navigator.serviceWorker.ready;
-    
-    // 🌿 追加：もし待機中のSWがあれば強制的に有効化をお願いする
-    if (registration.waiting) {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    // 2. もし「まだ聞いてない」なら聞く
+    if (permission === 'default') {
+      permission = await Notification.requestPermission();
     }
 
-    console.log("④ SW準備完了！:", registration.scope);
+    // 3. 許可されていなければ、ここで終了（おにいのスマホはここを通っちゃってるかも）
+    if (permission !== 'granted') {
+      console.error("権限がありません:", permission);
+      // 強制的にダイアログをもう一度出すための最終手段
+      permission = await Notification.requestPermission();
+      if (permission !== 'granted') return null;
+    }
 
+    // 4. サービスワーカーの準備を待つ
+    await navigator.serviceWorker.register('/sw.js');
+    const registration = await navigator.serviceWorker.ready;
+
+    // 5. 購読処理
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    console.log("⑤ 公開鍵を取得したよ:", publicKey ? "OK" : "空っぽだよ！");
-
     if (!publicKey) return null;
 
-    console.log("⑥ ブラウザに通知の購読をお願いしてるよ...");
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey)
     });
 
-    console.log("⑦ 購読成功！:", subscription);
     return subscription;
-
   } catch (error) {
-    console.error("❌ エラー発生:", error);
+    console.error("購読エラー:", error);
     return null;
   }
 }

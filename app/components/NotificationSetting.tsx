@@ -19,7 +19,7 @@ export default function NotificationSetting() {
       // 1. まず通知の購読（ブラウザの許可取り）だけやる
       const subscription = await subscribeToPush();
       if (!subscription) {
-        alert("ブラウザで通知を許可してね");
+        alert(`購読失敗。今の権限は ${Notification.permission} だよ`);
         return;
       }
 
