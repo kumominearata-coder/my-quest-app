@@ -16,29 +16,37 @@ export default function NotificationSetting() {
   const handleEnableNotification = async () => {
     setLoading(true);
     try {
-      // 1. まず通知の購読（ブラウザの許可取り）だけやる
-      const subscription = await subscribeToPush();
+      // 1. ブラウザに「すでに登録済みか」聞く
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+
+      // 2. なければ新しく作る（ここで VAPID 鍵が必要になる）
       if (!subscription) {
-        alert(`購読失敗。今の権限は ${Notification.permission} だよ`);
+        subscription = await subscribeToPush();
+      }
+
+      if (!subscription) {
+        alert("購読に失敗したよ。権限を確認してね。");
         return;
       }
 
-      // 2. Supabaseに保存（とりあえず user_id は固定か、取得できれば入れる）
+      // 3. Supabaseへ保存（upsert）
       const { data: { user } } = await supabase.auth.getUser();
-      const sub = subscription.toJSON();
+      const subJSON = subscription.toJSON();
       
       const { error } = await supabase.from("push_subscriptions").upsert({
-        user_id: user?.id || null, // ログインしてなくても一旦保存を試みる
-        endpoint: sub.endpoint,
-        auth: sub.keys?.auth,
-        p256dh: sub.keys?.p256dh,
-      }, { onConflict: 'endpoint' });
+        user_id: user?.id || null, 
+        endpoint: subJSON.endpoint,
+        auth: subJSON.keys?.auth,
+        p256dh: subJSON.keys?.p256dh,
+      }, { onConflict: 'endpoint' }); // endpoint が同じなら上書きする設定
 
       if (error) throw error;
-      alert("設定完了！スマホでも届くはずだよ");
-    } catch (err) {
+
+      alert("Supabase への保存も完了したよ！これで完璧。");
+    } catch (err: any) {
       console.error(err);
-      alert("エラーが出たよ。公開鍵がVercelに入ってるか確認してね");
+      alert(`エラー詳細: ${err.message}`);
     } finally {
       setLoading(false);
     }
