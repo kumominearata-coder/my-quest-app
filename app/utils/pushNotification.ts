@@ -1,10 +1,16 @@
 // utils/pushNotification.ts
 
 export async function subscribeToPush() {
-  if (!('serviceWorker' in navigator)) {
-    alert("Service Worker 非対応だよ");
-    return null;
-  }
+  // 🌿 今、JSから見えている変数を全部アラートに出す
+  const vars = [
+    `VAPID: ${process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ? 'あり' : 'なし'}`,
+    `SUPA_URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'あり' : 'なし'}`,
+    `NODE_ENV: ${process.env.NODE_ENV}`
+  ].join('\n');
+  
+  alert(vars);
+
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   try {
     // 1. 公開鍵のチェック
