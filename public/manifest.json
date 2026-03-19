@@ -1,7 +1,7 @@
 {
-  "name": "Quest Log",
-  "short_name": "Quest",
-  "description": "おにい専用のクエスト管理アプリ",
+  "name": "Manageous",
+  "short_name": "Manageous",
+  "description": "タスク管理&放置型国家運営シミュレーション",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",

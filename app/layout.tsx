@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 // ✅ metadata から themeColor と viewport を削除
 export const metadata = {
-  title: "Quest Log",
-  description: "おにい専用のクエスト管理アプリ",
+  title: "Manageous",
+  description: "タスク管理&放置型国家運営シミュレーション",
   manifest: "/manifest.json",
 };
 
@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
