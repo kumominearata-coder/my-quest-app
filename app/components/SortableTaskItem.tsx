@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 
-export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, updateHabitGrit }: any) {
+export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, failTask, updateHabitGrit }: any) {
   const {
     attributes,
     listeners,
@@ -125,7 +125,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, upd
         </div>
 
         {/* 右側：アクションボタン */}
-        <div className="flex gap-2 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex gap-3 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
          {isOffDay ? (
            // 指定曜日外（OFF）の場合の表示
            <div className="px-2 py-1.5 text-[13px] font-black font-mono text-zinc-500 tracking-widest border border-zinc-700 rounded bg-zinc-900/50 select-none">
@@ -159,33 +159,55 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, upd
             </div>
           ) : (
 
-          <div className="flex items-center gap-2.5">
-
-          {/* 日課で未完了の時だけスキップボタンを表示 */}
-          {task.type === "daily" && !task.is_completed && (
-           <button
-             onClick={() => skipTask(task)}
-             className="text-[10px] font-black text-zinc-600 hover:text-zinc-400 px-2 py-1 border border-zinc-800 rounded uppercase tracking-tighter transition-colors"
-            >
-             Skip
-            </button>
-           )}
-
-           {/* 既存の完了ボタン */}
-            <button
-              onClick={() => completeTask(task)}
-              disabled={task.is_completed}
-              className={`w-8 h-8 rounded border-3 flex items-center justify-center transition-all duration-500 ${
-                task.is_completed 
-                ? "border-zinc-800 bg-zinc-800 text-zinc-500" 
-                : `${config.border} bg-transparent ${config.color} hover:scale-105 ${config.glow}`
-              }`}
-            >
-              </button>
-            </div>
-          )}
-        </div>
+    /* 📋 2列構成：左列（Skip/×） | 右列（縦長完了ボタン） */
+    <div className="grid grid-cols-[auto_36px] grid-rows-2 gap-y-1.5 gap-x-2 items-center">
+      
+      {/* 1行目・左：SKIPボタン */}
+      <div className="flex justify-end items-center h-8">
+        {task.type === "daily" && !task.is_completed && (
+          <button
+            onClick={() => skipTask(task)}
+            className="text-[11px] font-black text-zinc-600 hover:text-zinc-400 px-2 py-1 border border-zinc-800 rounded uppercase tracking-tighter transition-colors"
+          >
+            Skip
+          </button>
+        )}
       </div>
-    </motion.div>
-  );
-}
+
+      {/* 1〜2行目・右：縦長完了ボタン（row-span-2 で連結） */}
+      <div className="row-span-2 flex items-center h-full">
+        <button
+          onClick={() => completeTask(task)}
+          disabled={task.is_completed}
+          className={`w-9 h-[calc(100%-4px)] rounded-lg border-2 flex items-center justify-center transition-all duration-500 ${
+            task.is_completed 
+            ? "border-zinc-800 bg-zinc-800 text-zinc-500" 
+            : `${config.border} bg-transparent ${config.color} hover:scale-105 ${config.glow}`
+          }`}
+          style={{ minHeight: '68px' }} // 2行分の高さを確保
+        >
+          {/* 完了アイコンや文字を縦に入れるならここ */}
+          <span className="text-[14px] font-black vertical-writing-mode flex flex-col items-center">
+            {task.is_completed ? "" : "✓"}
+          </span>
+        </button>
+      </div>
+
+      {/* 2行目・左：×ボタン */}
+      <div className="flex justify-end items-center h-8">
+        {!task.is_completed && (
+          <button
+            onClick={() => failTask(task)}
+            className="group flex items-center justify-center w-11 h-8 rounded border border-rose-900/40 bg-rose-950/10 hover:bg-rose-900/30 transition-all"
+            title="失敗として記録"
+          >
+            <span className="text-rose-600 group-hover:text-rose-400 text-sm font-black">×</span>
+</button>
+        )}
+      </div>
+    </div> // ← gridコンテナを閉じる
+  )}
+</div>
+</div>
+</motion.div>
+)} // ← 一番外側の motion.div を閉じる

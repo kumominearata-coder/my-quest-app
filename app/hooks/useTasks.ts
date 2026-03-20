@@ -4,6 +4,24 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase"; // データベース(Supabase)と通信するための道具
 import useSound from 'use-sound'; // 音を鳴らすための道具
 
+// ✅ 常に「今から5時間前」を基準にする関数
+const getLogicalDate = () => {
+  const now = new Date();
+  // 5時間（5 * 60 * 60 * 1000ミリ秒）を引く
+  const logicalNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+  
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    timeZone: 'Asia/Tokyo'
+  }).format(logicalNow).replace(/\//g, '-');
+};
+
+const getLogicalDay = () => {
+  const now = new Date();
+  const logicalNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+  return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][logicalNow.getDay()];
+};
+
 export const useTasks = () => {
   // ---------------------------------------------------------
   // 📦 【状態管理（ステート）】
@@ -47,8 +65,12 @@ export const useTasks = () => {
     if (task.type !== "daily") return true; // 日課以外は常にアクティブ
     if (!task.target_days || task.target_days.length === 0) return true; // 設定なしは毎日
   
-    const today = new Date().getDay(); // 0(日) 〜 6(土)
-    return task.target_days.includes(today);
+    const logicalDay = getLogicalDay(); 
+    const dayMap: { [key: string]: number } = {
+      sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6
+    };
+
+    return task.target_days.includes(dayMap[logicalDay]);
   };
 
   // ---------------------------------------------------------
@@ -117,7 +139,8 @@ export const useTasks = () => {
 
     const now = new Date();
     const hour = now.getHours();
-    const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const todayStr = getLogicalDate();
+
 
     // --- 🗓️ 【週次リセット】毎週月曜の朝5時に習慣のカウンターをリセットする処理 ---
     const { data: hReset } = await supabase.from('habit_reset_management').select('*').single();
@@ -129,9 +152,22 @@ export const useTasks = () => {
     // --- 🌅 【日次判定】朝5時を過ぎていたら「反省会」を起動する ---
     const lastProcessDate = localStorage.getItem("lastProcessDate");
     if (hour >= 5 && lastProcessDate !== todayStr) {
-      // 前日のやり残しを探す
-      const incompleteDailies = tasksWithStability.filter(t => t.type === "daily" && !t.is_completed && isTaskActiveToday(t));
-      const overdueTodos = tasksWithStability.filter(t => t.type === "todo" && !t.is_completed && t.due_date && t.due_date < todayStr);
+
+      const yesterdayDate = new Date(now.getTime() - 10 * 60 * 60 * 1000);
+      const yesterdayDayIndex = yesterdayDate.getDay();
+      
+    // 前日のやり残しを探す
+      const incompleteDailies = tasksWithStability.filter(t => {
+        if (t.type !== "daily" || t.is_completed) return false;
+
+        // ✅ 「毎日」設定、もしくは「昨日の曜日」が含まれているか判定
+        const targetDays = t.target_days || [];
+        return targetDays.length === 0 || targetDays.includes(yesterdayDayIndex);
+      });
+
+      const overdueTodos = tasksWithStability.filter(t => 
+        t.type === "todo" && !t.is_completed && t.due_date && t.due_date < todayStr
+      );
       const allReviewTargets = [...incompleteDailies, ...overdueTodos];
 
       if (allReviewTargets.length > 0) {
@@ -223,6 +259,36 @@ export const useTasks = () => {
     }
   };
 
+  // ❌ 【タスク失敗（ギブアップ）】
+  const failTask = async (task: any) => {
+    // 失敗のガツン！という音を鳴らす
+    playGavel();
+    safeVibrate([100, 50, 100]); // ちょっと強めの振動でお知らせ
+
+    // 没収されるGrit（担保）を計算
+    const penalty = task.penalty_grit || 0;
+    const newGrit = grit - penalty;
+
+    // 1. プロフィールのGritをDBで更新（減らす）
+    await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
+    
+    // 2. タスクをリストから消す（ToDoも日課も、失敗したらその日はおしまい）
+    if (task.type === "todo") {
+      await supabase.from("tasks").delete().eq("id", task.id);
+      setTasks(prev => prev.filter(t => t.id !== task.id));
+    } else {
+      // 日課の場合は「完了」と同じ扱いにして、翌朝のリセットまで非表示にする
+      await supabase.from("tasks").update({ is_completed: true }).eq("id", task.id);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true } : t));
+    }
+
+    // 3. 画面上のGrit状態を更新
+    setGrit(newGrit);
+
+    // 4. メッセージを表示
+    showNiceMessage(`${task.name} を諦めたね…。 Gritを ${penalty} 失ったよ。`);
+  };
+
 // ➕ タスクを新しく追加する関数
   const addTask = async (taskData: any) => {
     const { data, error } = await supabase.from("tasks").insert([taskData]).select();
@@ -263,8 +329,9 @@ export const useTasks = () => {
   // モーダルで「報告完了」を押した時に動く
   // ---------------------------------------------------------
   const handleReviewFinish = async (results: { [key: string]: boolean }) => {
+    const todayStr = getLogicalDate(); // ここで呼び出す
+    const currentDay = getLogicalDay(); // 曜日が必要な時もこれ！
     let totalGritChange = 0;
-    const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
     for (const task of reviewTasks) {
       const isDone = results[String(task.id)]; // モーダルでチェックしたかどうか
@@ -306,7 +373,7 @@ export const useTasks = () => {
     grit, setGrit, tasks, setTasks, isLoaded, activeTab, setActiveTab, tabs,
     reviewTasks, 
     handleReviewFinish,
-    updateHabitGrit, completeTask, skipTask,
+    updateHabitGrit, completeTask, skipTask, failTask,
     toastMessage, showToast, setShowToast, showNiceMessage,
     addTask, updateTask, deleteTask
   };

@@ -32,6 +32,7 @@ export default function Home() {
     updateHabitGrit,    // 習慣の＋ーを押した時の処理
     completeTask,       // タスクを完了させた時の処理
     skipTask,           // タスクをスキップした時の処理
+    failTask,           // タスクを失敗した時の処理
     toastMessage,       // 通知に出すメッセージ
     showToast,          // 通知を今出しているかどうかの旗
     setShowToast,       // 通知の表示・非表示を切り替える道具
@@ -165,6 +166,7 @@ return (
               onEdit={startEditing} 
               completeTask={completeTask} 
               skipTask={skipTask}
+              failTask={failTask}
               updateHabitGrit={updateHabitGrit} 
               setTasks={setTasks} 
             />

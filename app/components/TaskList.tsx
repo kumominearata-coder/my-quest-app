@@ -12,6 +12,7 @@ type TaskListProps = {
   setActiveTab: (tab: string) => void;
   completeTask: (task: any) => void;
   skipTask: (task: any) => void;
+  failTask: (task: any) => void;
   onEdit: (task: any) => void;
   updateHabitGrit: (task: any, direction: "plus" | "minus") => void;
 };
@@ -23,6 +24,7 @@ export default function TaskList({
   setActiveTab,
   completeTask,
   skipTask,
+  failTask,
   onEdit,
   updateHabitGrit,
 }: TaskListProps) {
@@ -91,6 +93,7 @@ export default function TaskList({
                   task={task} 
                   completeTask={completeTask}
                   skipTask={skipTask}
+                  failTask={failTask}
                   onEdit={onEdit}
                   updateHabitGrit={updateHabitGrit}
                 />
