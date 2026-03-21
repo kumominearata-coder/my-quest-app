@@ -15,12 +15,19 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
   } = useSortable({ id });
 
   // 今日の曜日を取得（0:日 〜 6:土）
-  const today = new Date().getDay();
+  const getLogicalDayIndex = () => {
+    const now = new Date();
+    const logicalNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    return logicalNow.getDay();
+  };
+
+  const today = getLogicalDayIndex();
 
   // 曜日タスクの「今日はお休み」判定
   // 日課タスクである & 曜日設定が存在 & 今日の曜日が含まれていない場合
   const isOffDay = task.type === "daily" && 
                    task.target_days && 
+                   task.target_days.length > 0 && // 設定がある場合のみ
                    !task.target_days.includes(today);
 
   // 表示用の透明度と操作権限を計算
@@ -30,10 +37,10 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
   const pointerEvents = "pointer-events-auto";
   
   // --- 【5段階のシステム安定度：色の定義】 ---
-  const getStabilityConfig = (level: number) => {
+   const getStabilityConfig = (level: number) => {
     switch (level) {
       case 5: return { color: "text-cyan-400", border: "border-cyan-500/80", glow: "shadow-[0_0_50px_rgba(34,211,238,0.3)]" };
-      case 4: return { color: "text-emerald-400", border: "border-emerald-500/80", glow: "shadow-[0_0_50px_rgba(52,211,153,0.2)]" };
+     case 4: return { color: "text-emerald-400", border: "border-emerald-500/80", glow: "shadow-[0_0_50px_rgba(52,211,153,0.2)]" };
       case 3: return { color: "text-yellow-400", border: "text-yellow-400/80", glow: "shadow-[0_0_50px_rgba(250,204,21,0.15)]" };
       case 2: return { color: "text-orange-400", border: "border-orange-500/80", glow: "shadow-[0_0_50px_rgba(249,115,22,0.15)]" };
       case 1: return { color: "text-rose-500", border: "border-rose-600/80", glow: "shadow-[0_0_50px_rgba(225,29,72,0.4)]" };
@@ -78,7 +85,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
       )}
 
       {/* ドラッグハンドル */}
-      <div {...attributes} {...listeners} onClick={(e) => e.stopPropagation()} className="cursor-grab p-1 text-white/10 hover:text-white/40 z-10">
+      <div {...attributes} {...listeners} onClick={(e) => e.stopPropagation()} className="cursor-grab p-1 text-white/40 hover:text-white/40 z-10">
         <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
           <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
@@ -88,14 +95,25 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
       <div className="flex-1 flex justify-between items-center gap-3 z-10">
         <div className="flex-1 flex flex-col gap-1.5">
           <div className="flex gap-2 items-center text-[11px] font-black tracking-widest font-mono">
-            <div className="px-1.5 py-0.5 rounded-sm border border-white/5 bg-zinc-900/80 flex gap-1.5">
-              <span className="text-amber-400">＋{task.reward_grit || 0}</span>
-              <span className="text-zinc-600">/</span>
-              <span className="text-red-400">－{task.penalty_grit || 0}</span>
+
+            <div className="w-[95px] shrink-0 px-1.5 py-0.5 rounded-sm border-1 border-white/40 bg-zinc-950 flex justify-between items-center gap-1">
+              <span className="text-amber-400 w-[28px] text-right font-mono">+{task.reward_grit || 0}</span>
+              <span className="text-zinc-600 w-[8px] text-center">/</span>
+              <span className="text-red-400 w-[28px] text-left font-mono">-{task.penalty_grit || 0}</span>
             </div>
+
+            {/* 信頼度（達成率）の表示 */}
+          {task.type === "daily" && (
+             <div className={`w-[95px] shrink-0 px-1.5 py-0.5 rounded-sm border-1 ${config.border} bg-zinc-900/50 flex justify-center`}>
+             <span className={`${config.color} opacity-90 uppercase whitespace-nowrap`}>
+               信頼性:{Math.round((task.recent_completion_rate || 0.5) * 100).toString().padStart(3, ' ')}%</span>
+             </div>
+          )}
+
+            {/* ToDoタスクの期限の表示 */}
             {task.type === "todo" && task.due_date && (
-              <span className="px-1.5 py-0.5 rounded-sm border border-red-900/30 bg-red-950/20 text-red-400 uppercase">
-                LMT: {task.due_date}
+              <span className="px-1.5 py-0.5 rounded-sm border border-red-900/300 bg-red-950/20 text-red-400 uppercase">
+                期日: {task.due_date}
               </span>
             )}
           </div>
@@ -167,7 +185,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
         {task.type === "daily" && !task.is_completed && (
           <button
             onClick={() => skipTask(task)}
-            className="text-[11px] font-black text-zinc-600 hover:text-zinc-400 px-2 py-1 border border-zinc-800 rounded uppercase tracking-tighter transition-colors"
+            className="text-[11px] font-black text-zinc-400 hover:text-zinc-400 px-2 py-1 border border-zinc-500 rounded uppercase tracking-tighter transition-colors"
           >
             Skip
           </button>
@@ -198,16 +216,16 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
         {!task.is_completed && (
           <button
             onClick={() => failTask(task)}
-            className="group flex items-center justify-center w-11 h-8 rounded border border-rose-900/40 bg-rose-950/10 hover:bg-rose-900/30 transition-all"
+            className="group flex items-center justify-center w-10 h-8 rounded border border-rose-900/100 bg-rose-950/30 hover:bg-rose-900/30 transition-all"
             title="失敗として記録"
           >
-            <span className="text-rose-600 group-hover:text-rose-400 text-sm font-black">×</span>
+            <span className="text-rose-600 group-hover:text-rose-400 text-sm font-black">✕</span>
 </button>
         )}
       </div>
-    </div> // ← gridコンテナを閉じる
+    </div> 
   )}
-</div>
-</div>
+</div> 
+</div> 
 </motion.div>
-)} // ← 一番外側の motion.div を閉じる
+)}

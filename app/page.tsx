@@ -8,12 +8,13 @@ import TaskForm from "./components/TaskForm"; // 入力フォーム
 import TaskList from "./components/TaskList"; // タスクのリスト表示
 import ReviewModal from "./components/ReviewModal"; // 朝の反省会モーダル
 import Toast from "./components/Toast"; // ポップアップ通知
-import GameHub from "./components/GameHub"; // これから作るゲーム画面をインポート
+import GameHub from "./components/GameHub"; // ゲーム画面をインポート
+import SettingsView from "./components/SettingsView"; // 設定画面をインポート
 
 export default function Home() {
 
-  // 🌿 今「タスク(task)」か「ゲーム(game)」どっちの画面にいるかを決める
-  const [viewMode, setViewMode] = useState<'task' | 'game'>('task');
+  // 🌿 今どの画面にいるかを決める
+  const [viewMode, setViewMode] = useState<'task' | 'game' | 'settings'>('task');
 
   // ---------------------------------------------------------
   // 🧠 【心臓部との接続】
@@ -36,7 +37,9 @@ export default function Home() {
     toastMessage,       // 通知に出すメッセージ
     showToast,          // 通知を今出しているかどうかの旗
     setShowToast,       // 通知の表示・非表示を切り替える道具
-    addTask, updateTask, deleteTask // タスクの追加・編集・消去
+    addTask, updateTask, deleteTask, // タスクの追加・編集・消去
+    rewardPopup, setRewardPopup, // ポップアップ表示
+    deleteConfirm, setDeleteConfirm, askDeleteTask //タスクの削除確認
   } = useTasks();
 
   // ---------------------------------------------------------
@@ -115,9 +118,9 @@ export default function Home() {
 
     // 💾 削除
   const handleDeleteTask = async () => {
-    if (!editingTask || !confirm("このクエストを破棄するの？")) return;
-    const success = await deleteTask(editingTask.id);
-    if (success) closeModal();
+    if (!editingTask) return;
+    askDeleteTask(editingTask);
+    closeModal();
   };
 
   // 📱 【スワイプ操作】左右にシュッとするとタブが切り替わるよ
@@ -199,11 +202,16 @@ return (
         </div>
       </div>
 </>
-      ) : (
-        /* viewMode が 'game' の時だけ表示される新しい画面 */
+      /* viewMode が 'game' の時だけ表示される画面 */
+      ) : viewMode === 'game' ? (
         <div className="w-full flex-1 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
           <GameHub grit={grit} onBack={() => setViewMode('task')} />
         </div>
+      ) : (
+      /* viewMode が 'settings' の時 */
+      <div className="w-full flex-1 animate-in fade-in slide-in-from-right-4 duration-300">
+        <SettingsView onBack={() => setViewMode('task')} />
+      </div>
       )}
 
       {/* 🖼️ 【入力・編集モーダル】ボタンを押した時だけフワッと出てくるよ */}
@@ -232,6 +240,61 @@ return (
 
       {/* 🍞 画面上にひょこっと出る通知 */}
       <Toast message={toastMessage} isVisible={showToast} onClose={() => setShowToast(false)} />
+
+      {rewardPopup?.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-zinc-900 border-2 border-amber-500/50 p-6 rounded-2xl text-center shadow-[0_0_50px_rgba(245,158,11,0.2)]"
+          >
+            <h2 className="text-zinc-500 text-xs font-black tracking-widest mb-2 uppercase">Grit Acquired</h2>
+            <div className="text-5xl font-black text-amber-400 mb-4 font-mono">
+              +{rewardPopup.added}
+            </div>
+            <div className="text-zinc-400 text-sm border-t border-white/10 pt-4">
+              Current Total: <span className="text-white font-bold">{rewardPopup.total}</span>
+            </div>
+            <button 
+             onClick={() => setRewardPopup(null)}
+              className="mt-6 px-8 py-2 bg-amber-500 text-black font-black rounded-lg hover:bg-amber-400 transition-colors"
+            >
+              ACKNOWLEDGE
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {deleteConfirm?.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90">
+          <div className="bg-zinc-900 border-2 border-rose-600 p-6 rounded-xl max-w-xs w-full">
+            <h2 className="text-rose-500 font-black mb-4 flex items-center gap-2">
+              <span>⚠️</span> TERMINATE QUEST?
+            </h2>
+            <p className="text-zinc-300 text-sm mb-6 leading-relaxed">
+              クエスト 「<span className="text-white font-bold">{deleteConfirm.title}</span>」 を破棄する？<br/>
+              この操作は取り消せないよ。
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-2 bg-zinc-800 text-zinc-400 rounded font-bold hover:bg-zinc-700"
+              >
+                CANCEL
+              </button>
+              <button 
+                onClick={() => {
+                  deleteTask(deleteConfirm.id);
+                  setDeleteConfirm(null);
+               }}
+                className="flex-1 py-2 bg-rose-600 text-white rounded font-bold hover:bg-rose-500"
+              >
+                DELETE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

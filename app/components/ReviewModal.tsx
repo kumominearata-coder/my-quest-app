@@ -50,9 +50,6 @@ export default function ReviewModal({ incompleteTasks, onFinish }: any) {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-500 uppercase font-black">
-                    Diff: {task.difficulty}
-                  </span>
                   {task.due_date && (
                     <span className="text-[10px] text-red-400 font-black">
                       Deadline: {task.due_date}

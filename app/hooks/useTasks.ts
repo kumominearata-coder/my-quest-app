@@ -35,6 +35,10 @@ export const useTasks = () => {
   const [toastMessage, setToastMessage] = useState(""); // 通知メッセージの内容
   const [showToast, setShowToast] = useState(false); // 通知を画面に出すか
 
+  // ポップアップ表示
+  const [rewardPopup, setRewardPopup] = useState<{show: boolean, added: number, total: number} | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, id: string, title: string} | null>(null);
+
   // 🔊 【効果音】
   const [playCoin] = useSound('/sounds/coin.mp3'); // 成功した時のチャリン！
   const [playGavel] = useSound('/sounds/gavel.mp3'); // 失敗した時のガツン！
@@ -111,8 +115,10 @@ export const useTasks = () => {
     // 3. 日課タスク：最近10日の達成率
     if (task.type === "daily") {
       const rate = task.recent_completion_rate || 0.5; 
-      if (rate >= 1.0) return 5;
+      if (rate >= 0.9) return 5;
+      if (rate >= 0.7) return 4;
       if (rate >= 0.5) return 3;
+      if (rate >= 0.3) return 2;
       return 1;
     }
     return 3;
@@ -228,6 +234,7 @@ export const useTasks = () => {
     safeVibrate(100);
     const earnedGrit = task.reward_grit || 0;
     const newGrit = grit + earnedGrit;
+    setRewardPopup({ show: true, added: earnedGrit, total: newGrit });
     await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
     setGrit(newGrit);
 
@@ -236,9 +243,11 @@ export const useTasks = () => {
       await supabase.from("tasks").delete().eq("id", task.id);
       setTasks(prev => prev.filter(t => t.id !== task.id));
     } else {
-      // 日課なら「完了フラグ」を立てる
-      await supabase.from("tasks").update({ is_completed: true }).eq("id", task.id);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true } : t));
+      // 日課なら「完了フラグ」を立て、達成率を上げる。
+      const currentRate = task.recent_completion_rate || 0.5;
+      const newRate = Math.min(1.0, currentRate * 0.9 + 0.1);
+      await supabase.from("tasks").update({ is_completed: true, recent_completion_rate: newRate }).eq("id", task.id);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true, recent_completion_rate: newRate, stability: getTaskStability({ ...t, recent_completion_rate: newRate }) } : t));
     }
   };
 
@@ -255,7 +264,7 @@ export const useTasks = () => {
         t.id === task.id ? { ...t, is_completed: true } : t
       ));
 
-    showNiceMessage(`${task.name} をスキップしたよ。`);
+    showNiceMessage(`タスクをスキップしたよ。`);
     }
   };
 
@@ -278,15 +287,18 @@ export const useTasks = () => {
       setTasks(prev => prev.filter(t => t.id !== task.id));
     } else {
       // 日課の場合は「完了」と同じ扱いにして、翌朝のリセットまで非表示にする
-      await supabase.from("tasks").update({ is_completed: true }).eq("id", task.id);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true } : t));
+      const currentRate = task.recent_completion_rate || 0.5;
+      const newRate = Math.max(0.0, currentRate * 0.9);
+
+      await supabase.from("tasks").update({ is_completed: true, recent_completion_rate: newRate }).eq("id", task.id);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true, recent_completion_rate: newRate, stability: getTaskStability({ ...t, recent_completion_rate: newRate }) } : t));
     }
 
     // 3. 画面上のGrit状態を更新
     setGrit(newGrit);
 
     // 4. メッセージを表示
-    showNiceMessage(`${task.name} を諦めたね…。 Gritを ${penalty} 失ったよ。`);
+    showNiceMessage(`タスクを諦めたね…。 Gritを ${penalty} 失ったよ。`);
   };
 
 // ➕ タスクを新しく追加する関数
@@ -314,6 +326,7 @@ export const useTasks = () => {
   };
 
   // 🗑️ タスクを削除する関数
+  const askDeleteTask = (task: any) => { setDeleteConfirm({ show: true, id: task.id, title: task.title });};
   const deleteTask = async (id: string) => {
     const { error } = await supabase.from("tasks").delete().eq("id", id);
     if (!error) {
@@ -375,6 +388,8 @@ export const useTasks = () => {
     handleReviewFinish,
     updateHabitGrit, completeTask, skipTask, failTask,
     toastMessage, showToast, setShowToast, showNiceMessage,
-    addTask, updateTask, deleteTask
+    addTask, updateTask, deleteTask,
+    rewardPopup, setRewardPopup,
+    deleteConfirm, setDeleteConfirm, askDeleteTask
   };
 };

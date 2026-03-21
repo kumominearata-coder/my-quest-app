@@ -5,9 +5,26 @@ type StatusProps = {
   onViewChange: (mode: 'task' | 'game') => void; 
 };
 
-export default function StatusBoard({ grit, viewMode, onViewChange }: StatusProps) {
+import { Settings, Gamepad2, LayoutList } from 'lucide-react';
+
+export default function StatusBoard({ grit, viewMode, onViewChange }: any) {
   return (
     <div className="bg-slate-800 p-6 rounded-2xl border-t-4 border-amber-600 w-full max-w-md mb-6 shadow-xl relative overflow-hidden">
+
+      {/* ✅ 右上の設定ボタン：absoluteで配置することで、中央のGrit表示を邪魔しないようにしたよ */}
+      <div className="absolute top-3 right-3">
+        <button 
+          onClick={() => onViewChange('settings')}
+          className={`p-2 rounded-lg transition-all ${
+            viewMode === 'settings' 
+            ? 'bg-amber-500 text-black' 
+            : 'text-slate-400 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          {/* 設定画面のときは、歯車をゆっくり回して「調整中」っぽさを演出 */}
+          <Settings size={20} className={viewMode === 'settings' ? "animate-spin" : ""} style={{ animationDuration: '3s' }} />
+        </button>
+      </div>
       
       <div className="flex justify-center items-center py-4">
         <div className="flex flex-col items-center">
