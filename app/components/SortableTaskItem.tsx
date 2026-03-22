@@ -146,9 +146,29 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
         <div className="flex gap-3 items-center shrink-0" onClick={(e) => e.stopPropagation()}>
          {isOffDay ? (
            // 指定曜日外（OFF）の場合の表示
-           <div className="px-2 py-1.5 text-[13px] font-black font-mono text-zinc-500 tracking-widest border border-zinc-700 rounded bg-zinc-900/50 select-none">
+           <div className="text-[14px] font-black text-zinc-500/80 border-2 border-zinc-500/80 px-2 py-0.5 rounded font-mono tracking-tighter">
              OFF
            </div>
+        
+        ) : task.is_completed ? (
+         /* ✅ 完了・失敗・スキップ後の「跡地」スタンプ表示 */
+         <div className="relative flex items-center justify-center animate-in zoom-in-50 duration-300">
+         {task.status === 'completed' && (
+         <span className="text-[14px] font-black text-emerald-500/80 border-2 border-emerald-500/80 px-2 py-0.5 rounded uppercase font-mono tracking-tighter">
+         Done
+         </span>
+         )}
+         {task.status === 'failed' && (
+         <span className="text-[14px] font-black text-rose-600/80 border-2 border-rose-600/80 px-1 py-0.5 rounded uppercase font-mono tracking-tighter">
+         Failed
+         </span>
+         )}
+         {task.status === 'skipped' && (
+         <span className="text-[13px] font-black text-zinc-500/80 border-2 border-zinc-500/80 px-1 py-0.5 rounded uppercase font-mono tracking-tighter">
+         Skipped
+         </span>
+         )}
+         </div>
 
           // 習慣タスク
           ) : task.type === "habit" ? (

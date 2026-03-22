@@ -2,162 +2,166 @@
 
 import { useState } from "react"; 
 import { useGameData } from "../hooks/game/useGameData";
+import { useCountdown } from "../hooks/game/useCountdown";
+import { MISSIONS } from "../types/ExplorationMission";
+import UnitListView from "./UnitListView";
+import ExplorationView from "./ExplorationView";
+import { Zap, Utensils, Users, Box, Navigation, Users2, Settings, X } from "lucide-react";
 
-export default function GameHub({ grit, onBack }: { grit: number; onBack: () => void }) {
-  // 🌿 inventory も取得するように追加（カバンの中身を表示するため）
-  const { units, inventory, masterData, isLoading, getFinalStats } = useGameData();
+{/* 探査の残り時間表示のためのサブコンポーネント */}
+function MissionTimer({ unit, mission, onComplete }: { unit: any, mission: any, onComplete: (uid: string, m: any) => void }) {
+  const timeLeft = useCountdown(unit.mission_started_at, mission.duration);
 
-  // 🌿 どの画面を表示するか管理するステートを追加
-  const [view, setView] = useState<'status' | 'party' | 'gacha'>('status');
+  const hours = Math.floor(timeLeft / 3600);
+  const minutes = Math.floor((timeLeft % 3600) / 60);
+  const seconds = timeLeft % 60;
+  const timeString = hours > 0 
+    ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    : `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-  // 読み込み中
-  if (isLoading) return <div className="text-white p-10">データ受信中...</div>;
-
-  if (!isLoading && units.length === 0) {
-  return <div className="text-white p-10 font-mono">NO DATA FOUND IN SUPABASE...</div>;
-}
-
-  // 最初の1体（謎の少女）を取得
-  const myUnit = units[0];
-  const master = myUnit ? masterData[myUnit.master_id] : null;
-
-  // 🌿 装備を含めた最終ステータスを計算！
-  const finalStats = myUnit 
-  ? getFinalStats(myUnit) 
-  : { hp: 0, vit: 0, cap: 0, int: 0, edu: 0 };
+  if (timeLeft <= 0) {
+    return (
+      <button 
+        className="px-3 py-1 bg-emerald-500 text-black text-[10px] font-black rounded animate-bounce"
+        onClick={() => {
+         onComplete(unit.id, mission);
+        }}
+      >
+        RETURN READY
+      </button>
+    );
+  }
 
   return (
-    <div className="relative w-full h-screen bg-slate-950 text-white flex flex-col">
-      {/* 🌿 上部：戻るボタンなど */}
-      <div className="p-6 flex justify-between items-center">
-        <div className="bg-slate-900 border border-white/10 px-4 py-1 rounded-full text-xs">
-          Game Mode: Scavenger
-        </div>
-        <button onClick={onBack} className="text-slate-400">✕</button>
+    <span className="text-[10px] font-mono text-amber-400">
+      RETURNING IN {timeString}
+    </span>
+  );
+}
+
+export default function GameHub({ grit, onBack }: { grit: number; onBack: () => void }) {
+  const { units, inventory, masterData, resources, isLoading, getFinalStats, startMission, completeMission } = useGameData();
+  
+  // ✅ view が null の時は「マップだけ」が見えている状態にするよ
+  const [view, setView] = useState<'status' | 'party' | 'gacha' | 'explore' | null>(null);
+
+  if (isLoading) return <div className="text-white p-10 font-mono animate-pulse">CONNECTING...</div>;
+
+  return (
+    <div className="relative w-full h-screen bg-slate-950 text-white flex flex-col overflow-hidden">
+      
+      {/* 📡 1. 常時表示：上部リソースバー */}
+      <div className="z-[30] grid grid-cols-4 gap-1 p-2 bg-slate-900/90 border-b border-white/5 backdrop-blur-md text-[10px]">
+        {/* ...（リソースの内容はさっきと同じなので省略）... */}
+        <div className="flex flex-col items-center"><span className="text-blue-400 font-bold"><Users size={10}/> POP</span><span className="font-mono">{resources.population.current}/{resources.population.total}</span></div>
+        <div className="flex flex-col items-center"><span className="text-yellow-400 font-bold"><Zap size={10}/> PWR</span><span className="font-mono">{resources.electric_power}w</span></div>
+        <div className="flex flex-col items-center text-orange-300"><span className="text-orange-300 font-bold"><Utensils size={10}/> FOOD</span><span className="font-mono">{resources.food}</span></div>
+        <div className="flex flex-col items-center text-emerald-400"><span className="text-emerald-400 font-bold"><Box size={10}/> MAT</span><span className="font-mono">{resources.minerals}</span></div>
       </div>
 
-      {/* 🌿 中央：ステータス表示エリア */}
-      <div className="flex-1 overflow-y-auto">
-        {view === 'status' && (
-          <div className="flex flex-col items-center justify-center p-6 min-h-full">
-            {/* キャラ名 */}
-            {/* キャラ名とレベル表示エリア */}
-            {master && (
-              <>
-                <h2 className="text-2xl font-black text-center mb-1 text-purple-400 uppercase tracking-widest">
-                  {master.name}
-                </h2>
-                <p className="text-[10px] text-slate-500 text-center mb-8 uppercase font-bold tracking-tighter">
-                  Level {myUnit.level} / Soulbound Companion
-                </p>
-              </>
-            )}
-
-            {/* ステータスリスト */}
-            <div className="space-y-4">
-              {[
-                { label: 'HP', value: finalStats.hp, color: 'text-red-400', desc: '生命反応' },
-                { label: 'VIT', value: finalStats.vit, color: 'text-red-400', desc: '体力' },
-                { label: 'CAP', value: finalStats.cap, color: 'text-red-400', desc: '運搬' },
-                { label: 'INT', value: finalStats.int, color: 'text-blue-400', desc: '知性' },
-                { label: 'EDU', value: finalStats.edu, color: 'text-emerald-400', desc: '知識' },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <div>
-                    <span className={`text-xl font-mono font-black ${s.color}`}>{s.label}</span>
-                    <span className="ml-2 text-[9px] text-slate-500 uppercase font-bold">{s.desc}</span>
-                  </div>
-                  <span className="text-2xl font-mono font-black">{s.value}</span>
-                </div>
-              ))}
+      {/* 🗺️ 2. 常時表示：ベースレイヤー（マップ） */}
+      <div className="absolute inset-0 z-[10] flex flex-col items-center justify-center p-4 pt-16">
+        <h3 className="text-[10px] text-slate-500 mb-4 tracking-[0.3em] font-black uppercase">Sector-01 / Main Base</h3>
+        <div className="grid grid-cols-5 gap-1 bg-slate-900/50 p-1 border border-white/10 rounded-sm">
+          {[...Array(25)].map((_, i) => (
+            <div key={i} className={`w-12 h-12 border border-white/5 flex items-center justify-center ${i === 12 ? 'bg-purple-500/10' : 'bg-slate-950/40 opacity-30'}`}>
+              {i === 12 && <div className="w-2 h-2 bg-purple-500 rounded-full animate-ping" />}
             </div>
+          ))}
+        </div>
+      </div>
 
-            {/* 装備中のアイテム表示 */}
-            <div className="mt-8">
-              <span className="text-[9px] text-slate-500 uppercase font-bold block mb-2">Equipped Items</span>
-              <div className="flex gap-2">
-                {myUnit.equipped_item_ids.length > 0 ? (
-                  myUnit.equipped_item_ids.map(id => (
-                    <div key={id} className="px-3 py-1 bg-slate-800 border border-white/10 rounded-md text-[10px] text-slate-300">
-                      {masterData[id]?.name || id}
-                    </div>
-                  ))
-                ) : (
-                  <span className="text-[10px] text-slate-600 italic">No equipment</span>
-                )}
-              </div>
+      {/* 🗺️ 探査からの帰還カウントダウン */}
+      <div className="relative z-[35] mt-8 space-y-2 w-full max-w-xs px-4">
+        {units.filter(u => u.status === 'mission').map(u => {
+          const mission = MISSIONS.find(m => m.id === u.mission_id);
+          return (
+            <div key={u.id} className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg flex justify-between items-center">
+              <span className="text-[10px] font-bold text-amber-500 uppercase tracking-tighter">
+                {masterData[u.master_id]?.name}
+              </span>
+              {mission ? (
+                <MissionTimer unit={u} mission={mission} onComplete={completeMission} />
+              ) : (
+                <span className="text-[10px]">DATA ERROR</span>
+              )}
             </div>
-            </div>
-            )}
+          );
+        })}
+      </div>
 
-        {/* --- 🌿 編成画面（DECK）の中身 --- */}
-        {view === 'party' && (
-          <div className="p-6 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-center mb-8">Inventory & Equipment</h3>
-            
-            {inventory.length > 0 ? (
-              <div className="grid gap-3">
-                {inventory.map((item) => {
-                  const itemMaster = masterData[item.item_id];
-                  const isEquipped = myUnit?.equipped_item_ids?.includes(item.item_id) ?? false;
-
-                  return (
-                    <div 
-                      key={item.id} 
-                      className={`p-4 rounded-2xl border transition-all ${isEquipped ? 'bg-purple-600/10 border-purple-500/50' : 'bg-slate-900 border-white/5'}`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="text-sm font-bold text-slate-200">{itemMaster?.name}</div>
-                          <div className="text-[10px] text-slate-500 mt-1">{itemMaster?.description}</div>
-                        </div>
-                        {/* 🌿 ここの onClick は次回のステップで Supabase 更新関数を呼ぶよ */}
-                        <button 
-                          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all ${
-                            isEquipped 
-                              ? 'bg-purple-500 text-white' 
-                              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                          }`}
-                        >
-                          {isEquipped ? 'Equipped' : 'Equip'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-20 text-slate-600 text-xs italic">Your inventory is empty.</div>
-            )}
+      {/* 🪟 3. 重なる画面：オーバーレイレイヤー */}
+      {view && (
+        <div className="absolute inset-0 z-[40] bg-slate-950/90 backdrop-blur-md animate-in fade-in zoom-in duration-200 p-6 flex flex-col">
+          {/* 共通の「戻る」ボタン */}
+          <div className="flex justify-end mb-4">
+            <button 
+              onClick={() => setView(null)} 
+              className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-slate-400 transition-all"
+            >
+              <X size={24} />
+            </button>
           </div>
-        )}
+
+            {/* ✅ ユニット画面レイヤー */}
+            {view === 'status' && (
+              <UnitListView 
+                units={units}
+                masterData={masterData}
+                getFinalStats={getFinalStats}
+                onClose={() => setView(null)} 
+               />
+            )}
+
+            {/* ✅ 探査画面レイヤー */}
+            {view === 'explore' && (
+              <ExplorationView 
+                units={units.filter(u => u.status !== 'mission')}
+                masterData={masterData}
+                getFinalStats={getFinalStats}
+                onClose={() => setView(null)}
+                onDeploy={async (unitId, mission) => {
+                  await startMission(unitId, mission.id);
+                  // ここで将来的に Supabase を叩く！
+                  setView(null); 
+                }}
+              />
+           )}
+            
+            {/* view === 'party' など他の画面も同様に */}
+          </div>
+      )}
+
+      {/* 🕹️ 4. 下部：コマンドメニュー（画面最下部に固定） */}
+      <div className="fixed bottom-0 left-0 right-0 z-[50] bg-slate-900/95 border-t border-white/10 p-4 pb-8 backdrop-blur-md">
+        <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
+          {[
+            { id: 'status', label: 'ユニット', icon: <Users2 size={18}/> },
+            { id: 'party', label: '予備', icon: <Box size={18}/> },
+            { id: 'gacha', label: '予備', icon: <Settings size={18}/> },
+            { id: 'explore', label: '探査', icon: <Navigation size={18}/> },
+          ].map((btn) => (
+            <button 
+              key={btn.id}
+              onClick={() => setView(btn.id as any)}
+              className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all border
+                ${view === btn.id 
+                  ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
+                  : 'bg-slate-800/50 border-white/5 text-slate-500 hover:text-slate-300'}`}
+            >
+              {btn.icon}
+              <span className="text-[10px] font-black">{btn.label}</span>
+            </button>
+          ))}
+       </div>
       </div>
 
-{/* 🌿 下部メニュー（onClickを追加したよ！） */}
-      <div className="h-1/4 bg-slate-900/80 p-6">
-        <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
-          <button 
-            onClick={() => setView('status')} // 探索の代わりに今はステータス
-            className={`aspect-square rounded-2xl border flex flex-col items-center justify-center ${view === 'status' ? 'bg-purple-600/20 border-purple-500' : 'bg-slate-800 border-white/10'}`}
-          >
-            <span className="text-xs font-bold">ステータス</span>
-          </button>
-          
-          <button 
-            onClick={() => setView('party')} // 編成画面へ
-            className={`aspect-square rounded-2xl border flex flex-col items-center justify-center ${view === 'party' ? 'bg-amber-600/20 border-amber-500 shadow-[0_0_20px_rgba(217,119,6,0.2)]' : 'bg-slate-800 border-white/10'}`}
-          >
-            <span className="text-xs font-bold">編成</span>
-          </button>
-
-          <button 
-            onClick={() => alert('ガチャはまだ準備中だよ')} 
-            className="aspect-square rounded-2xl bg-slate-800 border border-white/10 flex flex-col items-center justify-center"
-          >
-            <span className="text-xs font-bold text-slate-400">ガチャ</span>
-          </button>
-        </div>
-      </div>
+      {/* ゲーム終了ボタン（基地からの離脱） */}
+      {!view && (
+        <button onClick={onBack} className="absolute top-16 right-4 z-[35] p-2 bg-slate-900/50 rounded-full text-slate-500 hover:text-white border border-white/5">
+          <X size={16} />
+        </button>
+      )}
     </div>
   );
 }

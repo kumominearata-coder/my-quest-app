@@ -24,6 +24,9 @@ export type UserUnit = {
   level: number;
   exp: number;
   equipped_item_ids: string[]; // 装備中の「マスターID」の配列
+  status: 'idle' | 'mission'; // 探査の出撃状態
+  mission_id: string | null;   // 実行中の任務ID
+  mission_started_at: string | null; // 開始時刻（ISO文字列）
 };
 
 // おにい自身の所持アイテム（game_inventory テーブルに対応）

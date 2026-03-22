@@ -148,12 +148,7 @@ export const useTasks = () => {
     const todayStr = getLogicalDate();
 
 
-    // --- 🗓️ 【週次リセット】毎週月曜の朝5時に習慣のカウンターをリセットする処理 ---
-    const { data: hReset } = await supabase.from('habit_reset_management').select('*').single();
-    if (hReset) {
-      // (月曜判定の複雑なロジックがここにあるよ)
-      // 条件が合えば、習慣のカウントをDB上で0にリセットする
-    }
+    // --- 🗓️ 【週次リセット】毎週月曜の朝5時に習慣のカウンターをリセットする処理 ---(いまは放置)
 
     // --- 🌅 【日次判定】朝5時を過ぎていたら「反省会」を起動する ---
     const lastProcessDate = localStorage.getItem("lastProcessDate");
@@ -190,7 +185,7 @@ export const useTasks = () => {
 
   // 【日課リセット】すべての「日課」を未完了状態に戻す関数
   const resetDailies = async (currentTasks: any[], dateStr: string) => {
-    await supabase.from("tasks").update({ is_completed: false }).eq("type", "daily");
+    await supabase.from("tasks").update({ is_completed: false, status: 'active' }).eq("type", "daily");
     setTasks(prev => prev.map(t => t.type === "daily" ? { ...t, is_completed: false } : t));
     localStorage.setItem("lastProcessDate", dateStr); // 今日はもうリセットしたよ、と記録
   };
@@ -246,8 +241,8 @@ export const useTasks = () => {
       // 日課なら「完了フラグ」を立て、達成率を上げる。
       const currentRate = task.recent_completion_rate || 0.5;
       const newRate = Math.min(1.0, currentRate * 0.9 + 0.1);
-      await supabase.from("tasks").update({ is_completed: true, recent_completion_rate: newRate }).eq("id", task.id);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true, recent_completion_rate: newRate, stability: getTaskStability({ ...t, recent_completion_rate: newRate }) } : t));
+      await supabase.from("tasks").update({ is_completed: true, status: 'completed', recent_completion_rate: newRate }).eq("id", task.id);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true, status: 'completed', recent_completion_rate: newRate, stability: getTaskStability({ ...t, recent_completion_rate: newRate }) } : t));
     }
   };
 
@@ -258,10 +253,10 @@ export const useTasks = () => {
 
     if (task.type === "daily") {
       // 日課なら、Gritは増やさずに「完了フラグ」だけ立てて、明日のリセットまで待機させる
-      await supabase.from("tasks").update({ is_completed: true }).eq("id", task.id);
+      await supabase.from("tasks").update({ is_completed: true, status: 'skipped' }).eq("id", task.id);
     
       setTasks(prev => prev.map(t => 
-        t.id === task.id ? { ...t, is_completed: true } : t
+        t.id === task.id ? { ...t, is_completed: true, status: 'skipped' } : t
       ));
 
     showNiceMessage(`タスクをスキップしたよ。`);
@@ -290,8 +285,8 @@ export const useTasks = () => {
       const currentRate = task.recent_completion_rate || 0.5;
       const newRate = Math.max(0.0, currentRate * 0.9);
 
-      await supabase.from("tasks").update({ is_completed: true, recent_completion_rate: newRate }).eq("id", task.id);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true, recent_completion_rate: newRate, stability: getTaskStability({ ...t, recent_completion_rate: newRate }) } : t));
+      await supabase.from("tasks").update({ is_completed: true, status: 'failed', recent_completion_rate: newRate }).eq("id", task.id);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: true, status:'failed', recent_completion_rate: newRate, stability: getTaskStability({ ...t, recent_completion_rate: newRate }) } : t));
     }
 
     // 3. 画面上のGrit状態を更新
@@ -352,19 +347,33 @@ export const useTasks = () => {
       if (isDone) {
         totalGritChange += (task.reward_grit || 0); // やってたら報酬加算
         if (task.type === "daily") {
-          await supabase.from("tasks").update({ is_completed: true }).eq("id", task.id);
+          const currentRate = task.recent_completion_rate || 0.5;
+          const newRate = Math.min(1.0, currentRate * 0.9 + 0.1);
+          await supabase.from("tasks").update({ is_completed: true, status: 'completed', recent_completion_rate: newRate }).eq("id", task.id);
         } else if (task.type === "todo") {
           await supabase.from("tasks").delete().eq("id", task.id);
         }
       } else {
         totalGritChange -= (task.penalty_grit || 0); // サボってたら「担保」を没収
+
+        if (task.type === "daily") {
+          const currentRate = task.recent_completion_rate || 0.5;
+          const newRate = Math.max(0.0, currentRate * 0.9);
+
+          await supabase.from("tasks").update({ 
+            is_completed: true, status: 'failed', // 翌朝まで非表示にするためにtrueにする
+            recent_completion_rate: newRate
+          }).eq("id", task.id);
       }
     }
+  }
 
     // すべての計算が終わったら、新しいグリット値をDBに保存
     const newGrit = grit + totalGritChange;
     await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
     setGrit(newGrit);
+
+    await fetchData();
 
     // 新しい一日のために日課をリセット
     await resetDailies(tasks, todayStr);
