@@ -132,6 +132,9 @@ export const useTasks = () => {
     // 1. おにいのプロフィール（経験値など）を取得
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", 1).single();
     if (profile) setGrit(profile.grit);
+    const lastProcessDate = profile?.last_process_date;
+    const todayStr = getLogicalDate();
+    const hour = new Date().getHours();
     
     // 2. タスク一覧を取得して、並び順通りに整列
     const { data: taskList } = await supabase.from("tasks").select("*").order("sort_order", { ascending: true });
@@ -144,14 +147,10 @@ export const useTasks = () => {
     }));
 
     const now = new Date();
-    const hour = now.getHours();
-    const todayStr = getLogicalDate();
-
 
     // --- 🗓️ 【週次リセット】毎週月曜の朝5時に習慣のカウンターをリセットする処理 ---(いまは放置)
 
     // --- 🌅 【日次判定】朝5時を過ぎていたら「反省会」を起動する ---
-    const lastProcessDate = localStorage.getItem("lastProcessDate");
     if (hour >= 5 && lastProcessDate !== todayStr) {
 
       const yesterdayDate = new Date(now.getTime() - 10 * 60 * 60 * 1000);
@@ -186,8 +185,8 @@ export const useTasks = () => {
   // 【日課リセット】すべての「日課」を未完了状態に戻す関数
   const resetDailies = async (currentTasks: any[], dateStr: string) => {
     await supabase.from("tasks").update({ is_completed: false, status: 'active' }).eq("type", "daily");
+    await supabase.from("profiles").update({ last_process_date: dateStr }).eq("id", 1);
     setTasks(prev => prev.map(t => t.type === "daily" ? { ...t, is_completed: false } : t));
-    localStorage.setItem("lastProcessDate", dateStr); // 今日はもうリセットしたよ、と記録
   };
 
   useEffect(() => {
