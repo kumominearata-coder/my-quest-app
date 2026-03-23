@@ -96,10 +96,10 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
         <div className="flex-1 flex flex-col gap-1.5">
           <div className="flex gap-2 items-center text-[11px] font-black tracking-widest font-mono">
 
-            <div className="w-[95px] shrink-0 px-1.5 py-0.5 rounded-sm border-1 border-white/40 bg-zinc-950 flex justify-between items-center gap-1">
-              <span className="text-amber-400 w-[28px] text-right font-mono">+{task.reward_grit || 0}</span>
+            <div className="w-[145px] shrink-0 px-2 py-0.5 rounded-sm border-1 border-white/40 bg-zinc-950 flex justify-between items-center gap-1">
+              <span className="text-amber-400 w-[55px] text-right font-mono">+{ (task.reward_grit || 0) .toLocaleString() }</span>
               <span className="text-zinc-600 w-[8px] text-center">/</span>
-              <span className="text-red-400 w-[28px] text-left font-mono">-{task.penalty_grit || 0}</span>
+              <span className="text-red-400 w-[55px] text-left font-mono">-{ (task.penalty_grit || 0).toLocaleString() }</span>
             </div>
 
             {/* 信頼度（達成率）の表示 */}
