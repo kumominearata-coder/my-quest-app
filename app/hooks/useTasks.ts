@@ -22,6 +22,23 @@ const getLogicalDay = () => {
   return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][logicalNow.getDay()];
 };
 
+// ✅ Grit算出方程式
+const calculateGritValues = (t: number, d: number, s: number, i: number, tags: string[]) => {
+  const gD = [0.5, 0.8, 1.0, 2.0, 5.0][d - 1];
+  const hS = [0.5, 1.0, 2.0, 4.0, 8.0][s - 1];
+  const kI = [0.1, 1.0, 2.0, 4.0, 8.0][i - 1];
+  
+  const isKaji = tags.includes("家事");
+
+  // 獲得予定Grit: (10 * T * D * S * I) + (T * 5)
+  const reward = Math.round(10 * t * gD * hS * kI + t * 5);
+
+  // 罰則Grit: 家事なら固定5000、それ以外は獲得額の80%
+  const penalty = isKaji ? 5000 : Math.round(reward * 0.8);
+
+  return { reward, penalty };
+};
+
 export const useTasks = () => {
   // ---------------------------------------------------------
   // 📦 【状態管理（ステート）】
@@ -226,8 +243,14 @@ export const useTasks = () => {
   const completeTask = async (task: any) => {
     playCoin();
     safeVibrate(100);
-    const earnedGrit = task.reward_grit || 0;
+
+    // DBから最新の倍率を取得（fetchDataで保持している想定）
+    const { data: profile } = await supabase.from("profiles").select("housework_multiplier").eq("id", 1).single();
+    const multiplier = profile?.housework_multiplier || 1.0;
+    // 倍率を適用してGritを加算
+    const earnedGrit = Math.round((task.reward_grit || 0) * multiplier);
     const newGrit = grit + earnedGrit;
+
     setRewardPopup({ show: true, added: earnedGrit, total: newGrit });
     await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
     setGrit(newGrit);
@@ -298,13 +321,19 @@ export const useTasks = () => {
 // ➕ タスクを新しく追加する関数
   const addTask = async (taskData: any) => {
     const { data, error } = await supabase.from("tasks").insert([taskData]).select();
-    if (!error && data) {
-      // 追加した瞬間の安定度を計算してリストに加えるよ
-      const initialStability = taskData.type === "todo" ? 5 : 3;
-      const newTask = { ...data[0], stability: initialStability }; 
-      setTasks(prev => [newTask, ...prev]);
-      return true;
+
+    if (error) {
+      // もしエラーが出たら、何のカラムが原因かコンソールで教えてくれるはず
+      console.error("Supabase Insert Error:", error);
+      return false;
     }
+      // 追加した瞬間の安定度を計算してリストに加えるよ
+      if (data) {
+        const initialStability = taskData.type === "todo" ? 5 : 3;
+        const newTask = { ...data[0], stability: initialStability }; 
+        setTasks(prev => [newTask, ...prev]);
+        return true;
+      }
     return false;
   };
 
@@ -371,6 +400,23 @@ export const useTasks = () => {
     const newGrit = grit + totalGritChange;
     await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
     setGrit(newGrit);
+
+    // 📝 家事達成率の計算
+    const kajiTasks = reviewTasks.filter(t => t.tags?.includes("家事"));
+    const completedKajiCount = kajiTasks.filter(t => results[String(t.id)]).length;
+    const kajiRate = kajiTasks.length > 0 ? completedKajiCount / kajiTasks.length : 1.0;
+
+    // 倍率の決定ロジック
+    let nextMultiplier = 0.1;
+    if (kajiRate === 1.0) nextMultiplier = 1.2;
+    else if (kajiRate >= 0.8) nextMultiplier = 1.0;
+    else if (kajiRate >= 0.5) nextMultiplier = 0.5;
+
+    // 倍率をプロフィールに保存
+    await supabase.from("profiles").update({ 
+      grit: newGrit, 
+      housework_multiplier: nextMultiplier 
+    }).eq("id", 1);
 
     await fetchData();
 

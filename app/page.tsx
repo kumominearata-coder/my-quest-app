@@ -52,14 +52,15 @@ export default function Home() {
   const [note, setNote] = useState(""); // メモ
   const [tagsInput, setTagsInput] = useState(""); // タグ
   const [selectedType, setSelectedType] = useState("habit"); // 習慣か日課かToDoか
+  const [calcParams, setCalcParams] = useState({ t: 6, d: 3, s: 2, i: 2 });
   const [rewardGrit, setRewardGrit] = useState(10); // 報酬（）は初期値
   const [penaltyGrit, setPenaltyGrit] = useState(10); // 担保（）は初期値
+  const [minutes, setMinutes] = useState(30); //デフォルトの時間は30分
   const [habitType, setHabitType] = useState("positive"); // 良い習慣か悪い習慣か
   const [dueDate, setDueDate] = useState(""); // 期限
   const [targetDays, setTargetDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]); // 日課の対象曜日
 
-  // 🖊️ 【編集ボタンを押した時】
-  // 選んだタスクの情報を、入力フォームに自動でセットして画面を開く
+  // 🖊️ 【編集ボタンを押した時】選んだタスクの情報を、入力フォームに自動でセットして画面を開く
   const startEditing = (task: any) => {
     setEditingTask(task);
     setNewTaskTitle(task.title);
@@ -68,14 +69,15 @@ export default function Home() {
     setSelectedType(task.type);
     setRewardGrit(task.reward_grit || 0);
     setPenaltyGrit(task.penalty_grit || 0); 
+    setMinutes(task.minutes || 30);
     setHabitType(task.habit_type || "positive");
     setDueDate(task.due_date || "");
     setTargetDays(task.target_days || [0, 1, 2, 3, 4, 5, 6]); 
+    setCalcParams({ t: task.calc_t || 6, d: task.calc_d || 3, s: task.calc_s || 2, i: task.calc_i || 2 });
     setIsModalOpen(true);
   };
-
-  // ❌ 【閉じるボタンを押した時】
-  // 入力フォームを閉じて、中身を全部カラッポにするよ
+  
+  // ❌ 【閉じるボタンを押した時】入力フォームを閉じて、中身を全部カラッポにするよ
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingTask(null);
@@ -84,6 +86,7 @@ export default function Home() {
     setTagsInput("");
     setDueDate("");
     setTargetDays([0, 1, 2, 3, 4, 5, 6]); 
+    setMinutes(30);
     setEditingTask(null);
   };
 
@@ -97,8 +100,8 @@ export default function Home() {
     
     const success = await addTask({
       title: newTaskTitle, note, tags: tagsArray, type: selectedType,
-      reward_grit: rewardGrit, penalty_grit: penaltyGrit, user_id: 1,
-      is_completed: false, habit_type: habitType, due_date: dueDate || null, target_days: targetDays,
+      reward_grit: rewardGrit, penalty_grit: penaltyGrit, calc_t: calcParams.t, calc_d: calcParams.d, calc_s: calcParams.s, calc_i: calcParams.i,
+      user_id: 1, is_completed: false, habit_type: habitType, due_date: dueDate || null, target_days: targetDays,
       positive_count: 0, negative_count: 0, sort_order: minSortOrder - 1
     });
     if (success) closeModal();
@@ -110,8 +113,8 @@ export default function Home() {
     const tagsArray = tagsInput ? tagsInput.split(",").map(t => t.trim()) : [];
     const success = await updateTask(editingTask.id, {
       title: newTaskTitle, note, tags: tagsArray, type: selectedType,
-      reward_grit: rewardGrit, penalty_grit: penaltyGrit, habit_type: habitType,
-      due_date: dueDate || null, target_days: targetDays,
+      reward_grit: rewardGrit, penalty_grit: penaltyGrit, calc_t: calcParams.t, calc_d: calcParams.d, calc_s: calcParams.s, calc_i: calcParams.i,
+      habit_type: habitType, due_date: dueDate || null, target_days: targetDays,
     });
     if (success) closeModal();
   };
@@ -225,6 +228,7 @@ return (
                 selectedType={selectedType} setSelectedType={setSelectedType}
                 rewardGrit={rewardGrit} setRewardGrit={setRewardGrit}
                 penaltyGrit={penaltyGrit} setPenaltyGrit={setPenaltyGrit}
+                calcParams={calcParams} setCalcParams={setCalcParams}
                 habitType={habitType} setHabitType={setHabitType}
                 dueDate={dueDate} setDueDate={setDueDate}
                 targetDays={targetDays} setTargetDays={setTargetDays}
