@@ -96,9 +96,9 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
         <div className="flex-1 flex flex-col gap-1.5">
           <div className="flex gap-2 items-center text-[11px] font-black tracking-widest font-mono">
 
-            <div className="w-[145px] shrink-0 px-2 py-0.5 rounded-sm border-1 border-white/40 bg-zinc-950 flex justify-between items-center gap-1">
+            <div className="w-[145px] shrink-0 px-2 py-0.5 rounded-sm border-1 border-zinc-300 bg-zinc-950 flex justify-between items-center gap-1">
               <span className="text-amber-400 w-[55px] text-right font-mono">+{ (task.reward_grit || 0) .toLocaleString() }</span>
-              <span className="text-zinc-600 w-[8px] text-center">/</span>
+              <span className="text-zinc-400 w-[8px] text-center">/</span>
               <span className="text-red-400 w-[55px] text-left font-mono">-{ (task.penalty_grit || 0).toLocaleString() }</span>
             </div>
 
@@ -112,8 +112,8 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
 
             {/* ToDoタスクの期限の表示 */}
             {task.type === "todo" && task.due_date && (
-              <span className="px-1.5 py-0.5 rounded-sm border border-red-900/300 bg-red-950/20 text-red-400 uppercase">
-                期日: {task.due_date}
+              <span className="px-1.5 py-0.5 rounded-sm border border-red-900/300 bg-red-950/20 text-zinc-300 uppercase">
+                期日: {(() => { const d = new Date(task.due_date); return `${(d.getMonth() + 1).toString()}/${d.getDate().toString().padStart(2, '0')}`;})()}
               </span>
             )}
           </div>

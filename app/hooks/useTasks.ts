@@ -111,11 +111,11 @@ export const useTasks = () => {
       // 【最優先】期限を1日でも過ぎたら強制的に「危険(1)」
       if (task.due_date && task.due_date < todayStr) return 1;
 
-      // 放置時間でランク付け（12時間以内ならピカピカの5）
-      if (hoursPast <= 12) return 5;
-      if (hoursPast <= 24) return 4;
-      if (hoursPast <= 72) return 3;
-      if (hoursPast <= 168) return 2;
+      // 放置時間でランク付け（単位は時間hour）
+      if (hoursPast <= 24) return 5;
+      if (hoursPast <= 72) return 4;
+      if (hoursPast <= 168) return 3;
+      if (hoursPast <= 336) return 2;
       return 1;
     }
 
@@ -244,11 +244,8 @@ export const useTasks = () => {
     playCoin();
     safeVibrate(100);
 
-    // DBから最新の倍率を取得（fetchDataで保持している想定）
-    const { data: profile } = await supabase.from("profiles").select("housework_multiplier").eq("id", 1).single();
-    const multiplier = profile?.housework_multiplier || 1.0;
-    // 倍率を適用してGritを加算
-    const earnedGrit = Math.round((task.reward_grit || 0) * multiplier);
+    // Gritを加算
+    const earnedGrit = Math.round(task.reward_grit || 0);
     const newGrit = grit + earnedGrit;
 
     setRewardPopup({ show: true, added: earnedGrit, total: newGrit });
@@ -400,24 +397,6 @@ export const useTasks = () => {
     const newGrit = grit + totalGritChange;
     await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
     setGrit(newGrit);
-
-    // 📝 家事達成率の計算
-    const kajiTasks = reviewTasks.filter(t => t.tags?.includes("家事"));
-    const completedKajiCount = kajiTasks.filter(t => results[String(t.id)]).length;
-    const kajiRate = kajiTasks.length > 0 ? completedKajiCount / kajiTasks.length : 1.0;
-
-    // 倍率の決定ロジック
-    let nextMultiplier = 0.1;
-    if (kajiRate === 1.0) nextMultiplier = 1.2;
-    else if (kajiRate >= 0.8) nextMultiplier = 1.0;
-    else if (kajiRate >= 0.5) nextMultiplier = 0.5;
-
-    // 倍率をプロフィールに保存
-    await supabase.from("profiles").update({ 
-      grit: newGrit, 
-      housework_multiplier: nextMultiplier 
-    }).eq("id", 1);
-
     await fetchData();
 
     // 新しい一日のために日課をリセット

@@ -62,8 +62,12 @@ export default function TaskForm({
   addTask, editingTask, updateTask, deleteTask, cancelEdit
 }: TaskFormProps) {
 
+  const [isInteracting, setIsInteracting] = useState(false);
+
   // 📝 内部ステートやタグが動いたら自動計算
   useEffect(() => {
+    if (!isInteracting) return;
+
     const { t, d, s, i } = calcParams;
     const gD = DIFF_SETTINGS.find(x => x.val === d)?.rate || 1;
     const hS = STRESS_SETTINGS.find(x => x.val === s)?.rate || 1;
@@ -72,10 +76,14 @@ export default function TaskForm({
     const calculatedReward = Math.round((10 * t * gD * hS * kI) + (t * 5));
     setRewardGrit(calculatedReward);
 
-    const isKaji = tagsInput.includes("家事");
-    const calculatedPenalty = isKaji ? 5000 : Math.round(calculatedReward * 0.8);
+    const calculatedPenalty = Math.round(calculatedReward * 2.0);
     setPenaltyGrit(calculatedPenalty);
-  }, [calcParams, tagsInput]);
+    }, [calcParams]);
+
+    const handleCancel = () => {
+    setIsInteracting(false);
+    cancelEdit();
+    };
 
   return (
     <div className={`w-full max-w-md space-y-4 bg-slate-800 p-5 rounded-3xl border-2 transition-all shadow-2xl text-sm ${
@@ -91,7 +99,7 @@ export default function TaskForm({
         
         {/* Windows のウィンドウみたいな × ボタン */}
         <button 
-          onClick={cancelEdit} 
+          onClick={handleCancel} 
           className="text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-all p-1.5"
           title="閉じる"
         >
@@ -242,7 +250,7 @@ export default function TaskForm({
           <input 
             type="range" min="1" max="72" 
             value={calcParams.t} 
-            onChange={(e) => setCalcParams({...calcParams, t: Number(e.target.value)})}
+            onChange={(e) => { setIsInteracting(true); setCalcParams({...calcParams, t: Number(e.target.value)});}}
             className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
           />
         </div>
@@ -250,27 +258,36 @@ export default function TaskForm({
         {/* D, S, I セレクター */}
         <div className="grid grid-cols-1 gap-3">
           <StatusButtonRow label="難易度 (D)" value={calcParams.d} settings={DIFF_SETTINGS} 
-            onChange={(v) => setCalcParams({...calcParams, d: v})} />
+            onChange={(v) => { setIsInteracting(true); setCalcParams({...calcParams, d: v});}} />
           <StatusButtonRow label="精神的負荷 (S)" value={calcParams.s} settings={STRESS_SETTINGS} 
-            onChange={(v) => setCalcParams({...calcParams, s: v})} />
+            onChange={(v) => { setIsInteracting(true); setCalcParams({...calcParams, s: v});}} />
           <StatusButtonRow label="重要度 (I)" value={calcParams.i} settings={IMPORTANCE_SETTINGS} 
-            onChange={(v) => setCalcParams({...calcParams, i: v})} />
+            onChange={(v) => { setIsInteracting(true); setCalcParams({...calcParams, i: v});}} />
         </div>
       </div>
 
       {/* 報酬と担保（自動算出されるけど、手入力も可能） */}
       <div className="grid grid-cols-2 gap-3">
+        {/* 左側：報酬 */}
         <div className="space-y-1">
-          <label className="text-[13px] text-amber-500 font-black uppercase ml-1">🪙 報酬 (Reward)</label>
+          <label className="text-[12px] text-amber-500 font-black uppercase ml-1">🪙 報酬 (Reward)</label>
           <input 
             type="number" value={rewardGrit} onChange={(e) => setRewardGrit(Number(e.target.value))}
             className="w-full bg-slate-950 border border-amber-900/30 rounded-lg py-2 text-amber-400 font-mono text-center focus:ring-1 focus:ring-amber-500 outline-none"
           />
         </div>
+        {/* 右側：担保 */}
         <div className="space-y-1">
-          <label className="text-[13px] text-red-500 font-black uppercase ml-1">⚖️ 担保 (Penalty)</label>
+          <div className="flex justify-between items-center px-1">
+          <label className="text-[12px] text-red-500 font-black uppercase ml-1">⚖️ 担保 (Penalty)</label>
+          <button 
+           type="button" onClick={() => setPenaltyGrit(5000)}
+           className="text-[9px] bg-red-900/30 border border-red-500/40 text-red-400 px-2 py-0.1 rounded hover:bg-red-800 transition-all active:scale-90">FIX 5,000</button>
+          </div>
           <input 
-            type="number" value={penaltyGrit} onChange={(e) => setPenaltyGrit(Number(e.target.value))}
+            type="number" 
+            value={penaltyGrit} 
+            onChange={(e) => setPenaltyGrit(Number(e.target.value))}
             className="w-full bg-slate-950 border border-red-900/30 rounded-lg py-2 text-red-400 font-mono text-center focus:ring-1 focus:ring-red-500 outline-none"
           />
         </div>
@@ -281,10 +298,10 @@ export default function TaskForm({
         {editingTask ? (
           <>
             <button onClick={deleteTask} className="bg-red-900/30 border border-red-500/50 text-red-400 py-3 rounded-xl font-black text-xs">削除</button>
-            <button onClick={updateTask} className="bg-green-600 text-white py-3 rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all">更新</button>
+            <button onClick={() => { setIsInteracting(false); updateTask(); }} className="bg-green-600 text-white py-3 rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all">更新</button>
           </>
         ) : (
-          <button onClick={addTask} className="col-span-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-black text-sm shadow-xl active:scale-95 transition-all">クエスト作成</button>
+          <button onClick={() => { setIsInteracting(false); addTask(); }} className="col-span-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-black text-sm shadow-xl active:scale-95 transition-all">クエスト作成</button>
         )}
       </div>
     </div>
