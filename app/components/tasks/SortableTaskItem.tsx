@@ -62,7 +62,8 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
     transition,
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 100 : 1,
-    backgroundColor: backgroundColor
+    backgroundColor: backgroundColor,
+    willChange: "transform, opacity",
   };
 
   const glitchAnimation = (task.stability === 1 && !task.is_completed) ? {

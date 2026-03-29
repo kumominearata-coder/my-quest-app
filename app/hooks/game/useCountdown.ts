@@ -10,8 +10,9 @@ export function useCountdown(startTime: string | null, duration: number) {
     const calculateTimeLeft = () => {
       const start = new Date(startTime).getTime();
       const now = new Date().getTime();
-      const elapsed = Math.floor((now - start) / 1000); // 経過時間（秒）
-      const remaining = Math.max(0, duration - elapsed);
+      const realElapsedSeconds = Math.floor((now - start) / 1000);
+      const gameElapsedSeconds = realElapsedSeconds * 3;
+      const remaining = Math.max(0, duration - gameElapsedSeconds);
       setTimeLeft(remaining);
     };
 
