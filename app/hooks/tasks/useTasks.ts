@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase"; // データベース(Supabase)と通信するための道具
+import { DEV_USER_ID } from "@/lib/devUser";
 import useSound from 'use-sound'; // 音を鳴らすための道具
 
 // ✅ 常に「今から5時間前」を基準にする関数
@@ -147,7 +148,7 @@ export const useTasks = () => {
   // ---------------------------------------------------------
   const fetchData = async () => {
     // 1. おにいのプロフィール（経験値など）を取得
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", 1).single();
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", DEV_USER_ID).single();
     if (profile) setGrit(profile.grit);
     const lastProcessDate = profile?.last_process_date;
     const todayStr = getLogicalDate();
@@ -202,7 +203,7 @@ export const useTasks = () => {
   // 【日課リセット】すべての「日課」を未完了状態に戻す関数
   const resetDailies = async (currentTasks: any[], dateStr: string) => {
     await supabase.from("tasks").update({ is_completed: false, status: 'active' }).eq("type", "daily");
-    await supabase.from("profiles").update({ last_process_date: dateStr }).eq("id", 1);
+    await supabase.from("profiles").update({ last_process_date: dateStr }).eq("id", DEV_USER_ID);
     setTasks(prev => prev.map(t => t.type === "daily" ? { ...t, is_completed: false } : t));
   };
 
@@ -228,7 +229,7 @@ export const useTasks = () => {
     const newGrit = isPlus ? grit + gritChange : grit - gritChange;
     
     // プロフィールのGritをDBで更新
-    await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
+    await supabase.from("profiles").update({ grit: newGrit }).eq("id", DEV_USER_ID);
     
     // タスクの正/負カウントをDBで更新
     const updateData = isPlus ? { positive_count: (task.positive_count || 0) + 1 } : { negative_count: (task.negative_count || 0) + 1 };
@@ -249,7 +250,7 @@ export const useTasks = () => {
     const newGrit = grit + earnedGrit;
 
     setRewardPopup({ show: true, added: earnedGrit, total: newGrit });
-    await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
+    await supabase.from("profiles").update({ grit: newGrit }).eq("id", DEV_USER_ID);
     setGrit(newGrit);
 
     if (task.type === "todo") {
@@ -293,7 +294,7 @@ export const useTasks = () => {
     const newGrit = grit - penalty;
 
     // 1. プロフィールのGritをDBで更新（減らす）
-    await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
+    await supabase.from("profiles").update({ grit: newGrit }).eq("id", DEV_USER_ID);
     
     // 2. タスクをリストから消す（ToDoも日課も、失敗したらその日はおしまい）
     if (task.type === "todo") {
@@ -395,7 +396,7 @@ export const useTasks = () => {
 
     // すべての計算が終わったら、新しいグリット値をDBに保存
     const newGrit = grit + totalGritChange;
-    await supabase.from("profiles").update({ grit: newGrit }).eq("id", 1);
+    await supabase.from("profiles").update({ grit: newGrit }).eq("id", DEV_USER_ID);
     setGrit(newGrit);
     await fetchData();
 

@@ -11,7 +11,7 @@ export function useCountdown(startTime: string | null, duration: number) {
       const start = new Date(startTime).getTime();
       const now = new Date().getTime();
       const realElapsedSeconds = Math.floor((now - start) / 1000);
-      const gameElapsedSeconds = realElapsedSeconds * 3;
+      const gameElapsedSeconds = realElapsedSeconds;
       const remaining = Math.max(0, duration - gameElapsedSeconds);
       setTimeLeft(remaining);
     };

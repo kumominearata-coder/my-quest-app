@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 /**
  * G.R.I.T. 時間同期システム
- * 23日ごとに季節が移り変わる特別仕様
+ * 23日ごとに季節が移り変わる仕様
  */
 export function useGameTime() {
   const [now, setNow] = useState(new Date());

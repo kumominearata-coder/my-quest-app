@@ -199,10 +199,10 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
           ) : (
 
     /* 📋 2列構成：左列（Skip/×） | 右列（縦長完了ボタン） */
-    <div className="grid grid-cols-[auto_36px] grid-rows-2 gap-y-1.5 gap-x-2 items-center">
+    <div className="grid grid-cols-[1fr_42px] grid-rows-2 gap-y-1.5 gap-x-2 items-center">
       
       {/* 1行目・左：SKIPボタン */}
-      <div className="flex justify-end items-center h-8">
+      <div className="flex justify-end items-center h-7">
         {task.type === "daily" && !task.is_completed && (
           <button
             onClick={() => skipTask(task)}
@@ -218,7 +218,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
         <button
           onClick={() => completeTask(task)}
           disabled={task.is_completed}
-          className={`w-9 h-[calc(100%-4px)] rounded-lg border-2 flex items-center justify-center transition-all duration-500 ${
+          className={`w-10 h-[calc(100%-4px)] rounded-lg border-2 flex items-center justify-center transition-all duration-500 ${
             task.is_completed 
             ? "border-zinc-800 bg-zinc-800 text-zinc-500" 
             : `${config.border} bg-transparent ${config.color} hover:scale-105 ${config.glow}`
@@ -237,7 +237,7 @@ export function SortableTaskItem({ id, task, onEdit, completeTask, skipTask, fai
         {!task.is_completed && (
           <button
             onClick={() => failTask(task)}
-            className="group flex items-center justify-center w-10 h-8 rounded border border-rose-900/100 bg-rose-950/30 hover:bg-rose-900/30 transition-all"
+            className="group flex items-center justify-center w-11 h-8 rounded border border-rose-900/100 bg-rose-950/30 hover:bg-rose-900/30 transition-all"
             title="失敗として記録"
           >
             <span className="text-rose-600 group-hover:text-rose-400 text-sm font-black">✕</span>

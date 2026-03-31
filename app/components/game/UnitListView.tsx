@@ -1,99 +1,170 @@
-// components/UnitListView.tsx
 "use client";
 
-import { UserUnit, MasterData } from "@/app/types/game1";
-import { X, Heart, Zap, Package, Brain, GraduationCap, Microscope } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Users2, X, User, Hammer, Navigation } from "lucide-react";
+import { MISSIONS } from "../../types/ExplorationMission";
+import { RECIPES } from "../../types/Recipes";
+import { getLaborTotalDurationSeconds } from "@/lib/game/labor";
+import { formatDurationHMS } from "@/lib/game/formatTime";
 
-interface Props {
-  units: UserUnit[];
-  masterData: Record<string, MasterData>;
-  getFinalStats: (unit: UserUnit) => any;
-  onClose: () => void;
+type UnitListViewProps = {
+  units: any[];
+};
+
+function getUnitWorkInfo(unit: any, nowMs: number) {
+  if (unit.status === "idle" || !unit.mission_started_at) {
+    return { label: "待機中", remaining: 0, duration: 0, targetName: "-" };
+  }
+
+  const startedAt = new Date(unit.mission_started_at).getTime();
+  const elapsed = Math.max(0, Math.floor((nowMs - startedAt) / 1000));
+
+  if (unit.status === "mission") {
+    const mission = MISSIONS.find((m) => String(m.id) === String(unit.mission_id));
+    const duration = mission?.duration ?? 0;
+    return {
+      label: "探査中",
+      remaining: Math.max(0, duration - elapsed),
+      duration,
+      targetName: mission?.name ?? "不明な任務",
+    };
+  }
+
+  if (unit.status === "labor") {
+    const recipe = RECIPES.find((r) => String(r.id) === String(unit.mission_id));
+    const duration = recipe
+      ? getLaborTotalDurationSeconds(recipe.duration, unit.labor_quantity)
+      : 0;
+    return {
+      label: "作業中",
+      remaining: Math.max(0, duration - elapsed),
+      duration,
+      targetName: recipe?.name ?? "不明なレシピ",
+    };
+  }
+
+  const asMission = MISSIONS.find((m) => String(m.id) === String(unit.mission_id));
+  if (asMission) {
+    return { label: "探査中", remaining: 0, duration: asMission.duration, targetName: asMission.name };
+  }
+
+  const asLaborRecipe = RECIPES.find((r) => String(r.id) === String(unit.mission_id));
+  if (asLaborRecipe) {
+    return {
+      label: "作業中",
+      remaining: 0,
+      duration: getLaborTotalDurationSeconds(asLaborRecipe.duration, unit.labor_quantity),
+      targetName: asLaborRecipe.name,
+    };
+  }
+
+  return { label: unit.status, remaining: 0, duration: 0, targetName: "-" };
 }
 
-export default function UnitListView({ units, masterData, getFinalStats, onClose }: Props) {
+export default function UnitListView({ units }: UnitListViewProps) {
+  const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const unitCards = useMemo(
+    () =>
+      units.map((unit) => ({
+        unit,
+        info: getUnitWorkInfo(unit, nowMs),
+      })),
+    [units, nowMs]
+  );
+
   return (
-    <div className="absolute inset-0 z-[40] bg-slate-950/95 backdrop-blur-xl p-6 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
-      
-      {/* ヘッダー：調査録風 */}
-      <div className="flex justify-between items-center mb-8 border-b border-purple-500/20 pb-4">
-        <div>
-          <h2 className="text-xl font-black text-purple-400 tracking-[0.2em] uppercase flex items-center gap-2">
-            <Microscope size={20} /> Personnel Dossier
-          </h2>
-          <p className="text-[8px] text-slate-500 uppercase tracking-widest mt-1">
-            Registered Biological Units / Sector-01
-          </p>
+    <div className="p-4 bg-slate-950/50 min-h-full">
+      <h2 className="text-xl font-black mb-6 text-cyan-400 flex items-center gap-2">
+        <Users2 size={20} /> ユニット
+      </h2>
+
+      {unitCards.length === 0 ? (
+        <div className="p-8 text-center border border-dashed border-white/10 rounded-2xl text-slate-600 text-sm">
+          ユニットがいないよ
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-slate-400 transition-colors">
-          <X size={24} />
-        </button>
-      </div>
-
-      {/* ユニットリスト */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-        {units.map((unit) => {
-          const master = masterData[unit.master_id];
-          const finalStats = getFinalStats(unit);
-          
-          return (
-            <div 
-              key={unit.id} 
-              className="bg-slate-900/50 border border-white/5 rounded-2xl p-5 relative overflow-hidden group hover:border-purple-500/30 transition-all"
+      ) : (
+        <div className="space-y-3">
+          {unitCards.map(({ unit, info }) => (
+            <button
+              key={unit.id}
+              type="button"
+              onClick={() => setSelectedUnit(unit)}
+              className="w-full bg-slate-900 border border-white/5 p-4 rounded-2xl hover:bg-slate-800 transition-all text-left"
             >
-              {/* 背景の装飾デコレーション */}
-              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                <span className="text-4xl font-black font-mono">#{unit.master_id}</span>
-              </div>
-
-              <div className="flex items-start gap-4">
-                {/* レベル表示（紋章風） */}
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full border-2 border-purple-500/20 flex items-center justify-center font-mono font-black text-purple-400 bg-purple-500/5">
-                    {unit.level}
+              <div className="flex justify-between items-start gap-3">
+                <div>
+                  <div className="font-bold text-white flex items-center gap-2">
+                    <User size={14} className="text-cyan-400" />
+                    {unit.master_id}
                   </div>
-                  <span className="text-[7px] text-slate-500 mt-1 font-bold uppercase">Level</span>
-                </div>
-
-                {/* 名前とステータス */}
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-slate-200 mb-3 tracking-wider">
-                    {master?.name || "Unknown Unit"}
-                  </h3>
-                  
-                  <div className="grid grid-cols-3 gap-y-3 gap-x-2">
-                    {[
-                      { icon: <Heart size={10} />, label: 'HP', val: finalStats.hp, color: 'text-red-400' },
-                      { icon: <Zap size={10} />, label: 'VIT', val: finalStats.vit, color: 'text-amber-400' },
-                      { icon: <Package size={10} />, label: 'CAP', val: finalStats.cap, color: 'text-orange-400' },
-                      { icon: <Brain size={10} />, label: 'INT', val: finalStats.int, color: 'text-blue-400' },
-                      { icon: <GraduationCap size={10} />, label: 'EDU', val: finalStats.edu, color: 'text-emerald-400' },
-                    ].map((s) => (
-                      <div key={s.label} className="flex flex-col">
-                        <span className={`text-[8px] font-bold uppercase flex items-center gap-1 ${s.color} opacity-70`}>
-                          {s.icon} {s.label}
-                        </span>
-                        <span className="text-sm font-mono font-bold text-slate-300">
-                          {s.val}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    状態: {info.label}
                   </div>
+                  {unit.status !== "idle" && (
+                    <div className="text-[10px] text-slate-400 mt-1">
+                      内容: {info.targetName}
+                    </div>
+                  )}
                 </div>
+                {unit.status !== "idle" && (
+                  <div className="text-right">
+                    <div className="text-xs font-mono font-black text-cyan-400">
+                      {formatDurationHMS(info.remaining)}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      / {formatDurationHMS(info.duration)}
+                    </div>
+                  </div>
+                )}
               </div>
+            </button>
+          ))}
+        </div>
+      )}
 
-              {/* 装備品ミニタグ */}
-              <div className="mt-4 pt-3 border-t border-white/5 flex gap-1">
-                {unit.equipped_item_ids.map(id => (
-                  <span key={id} className="text-[8px] px-2 py-0.5 bg-white/5 rounded-md text-slate-500 font-mono">
-                    {masterData[id]?.name || id}
-                  </span>
-                ))}
-              </div>
+      {selectedUnit && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-black text-white">ユニット詳細</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedUnit(null)}
+                className="text-slate-500 hover:text-white"
+              >
+                <X size={20} />
+              </button>
             </div>
-          );
-        })}
-      </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="text-slate-300">
+                名前: <span className="font-bold text-white">{selectedUnit.master_id}</span>
+              </div>
+              <div className="text-slate-300">
+                状態: {getUnitWorkInfo(selectedUnit, nowMs).label}
+              </div>
+              <div className="text-slate-300">ID: {selectedUnit.id}</div>
+              {selectedUnit.status === "mission" && (
+                <div className="text-amber-400 text-xs flex items-center gap-1">
+                  <Navigation size={12} /> 探査任務を実行中
+                </div>
+              )}
+              {selectedUnit.status === "labor" && (
+                <div className="text-blue-400 text-xs flex items-center gap-1">
+                  <Hammer size={12} /> 工作作業を実行中
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
